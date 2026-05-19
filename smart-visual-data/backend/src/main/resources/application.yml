@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smart-morning-meeting-backend
+  
+  # Redis 缓存集群配置 (此处以单机做示例，部署时改为cluster)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # MySQL 数据源配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/smm_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: hqh123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# MyBatis-plus 配置
+mybatis-plus:
+  mapper-locations: classpath:/mapper/*.xml
+  global-config:
+    db-config:
+      id-type: auto
