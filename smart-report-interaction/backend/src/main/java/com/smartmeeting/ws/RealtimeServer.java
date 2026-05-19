@@ -22,15 +22,12 @@ public class RealtimeServer {
 
     @OnClose
     public void onClose(Session session, @PathParam("meetingId") Long meetingId) {
-        ConcurrentHashMap<String, Session> room = rooms.get(meetingId);
-        if (room != null) {
-            room.remove(session.getId());
-            if (room.isEmpty()) rooms.remove(meetingId);
-        }
+        removeSession(meetingId, session.getId());
     }
 
     @OnError
-    public void onError(Session session, Throwable error) {
+    public void onError(Session session, @PathParam("meetingId") Long meetingId, Throwable error) {
+        removeSession(meetingId, session.getId());
         error.printStackTrace();
     }
 
@@ -38,16 +35,26 @@ public class RealtimeServer {
     public void onMessage(String message, Session session) {
     }
 
+    private static void removeSession(Long meetingId, String sessionId) {
+        ConcurrentHashMap<String, Session> room = rooms.get(meetingId);
+        if (room != null) {
+            room.remove(sessionId);
+            if (room.isEmpty()) rooms.remove(meetingId);
+        }
+    }
+
     public static void broadcast(Long meetingId, String message) {
         ConcurrentHashMap<String, Session> room = rooms.get(meetingId);
         if (room != null) {
-            room.values().forEach(session -> {
+            room.values().removeIf(session -> {
                 try {
                     session.getBasicRemote().sendText(message);
+                    return false;
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    return true;
                 }
             });
+            if (room.isEmpty()) rooms.remove(meetingId);
         }
     }
 }

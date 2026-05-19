@@ -1,6 +1,7 @@
 package com.smartmeeting.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartmeeting.common.Result;
 import com.smartmeeting.dao.MemberMapper;
 import com.smartmeeting.entity.Interaction;
@@ -25,13 +26,20 @@ public class InteractionController {
     @Resource
     private MemberMapper memberMapper;
 
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     @PostMapping("/message")
     public Result<?> sendMessage(@RequestBody Interaction msg) {
         try {
             Interaction result = interactionService.sendMessage(msg);
-            RealtimeServer.broadcast(msg.getMeetingId(),
-                "{\"type\":\"interaction\",\"interactType\":" + msg.getInteractType()
-                + ",\"userId\":\"" + msg.getUserId() + "\",\"content\":\"" + msg.getContent() + "\"}");
+            try {
+                Map<String, Object> wsMsg = new HashMap<>();
+                wsMsg.put("type", "interaction");
+                wsMsg.put("interactType", msg.getInteractType());
+                wsMsg.put("userId", msg.getUserId());
+                wsMsg.put("content", msg.getContent());
+                RealtimeServer.broadcast(msg.getMeetingId(), mapper.writeValueAsString(wsMsg));
+            } catch (Exception ignored) {}
             return Result.ok(result);
         } catch (RuntimeException e) {
             return Result.fail(400, e.getMessage());

@@ -1,6 +1,7 @@
 package com.smartmeeting.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartmeeting.common.Result;
 import com.smartmeeting.dao.MemberMapper;
 import com.smartmeeting.entity.Member;
@@ -25,6 +26,8 @@ public class SignController {
     @Resource
     private MemberMapper memberMapper;
 
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     @PostMapping("/in")
     public Result<?> signIn(@RequestBody Map<String, Object> body) {
         Long meetingId = Long.valueOf(body.get("meetingId").toString());
@@ -36,8 +39,13 @@ public class SignController {
             return Result.fail(400, sr.error);
         }
 
-        RealtimeServer.broadcast(meetingId,
-            "{\"type\":\"sign\",\"userId\":\"" + userId + "\",\"signTime\":\"" + sr.data.getSignTime() + "\"}");
+        try {
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("type", "sign");
+            msg.put("userId", userId);
+            msg.put("signTime", sr.data.getSignTime());
+            RealtimeServer.broadcast(meetingId, mapper.writeValueAsString(msg));
+        } catch (Exception ignored) {}
         return Result.ok(sr.data);
     }
 
