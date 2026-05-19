@@ -1,0 +1,108 @@
+===== 1.数据库设计说明书 .doc =====
+ꗬÁ袉Љ倔¿ကࠀ杠卋卋Ãࠄ研⺏ÖJ¤ԈᄶԈᄶ㌕D㍙ᘾ࢜Ớޤ⚓ǎ㛱Ȳ㤣:㥳Ͼ㵱Ŭ㻝¸䀯⭱$⤉ɨ⡡¨♾㙿"㏙ʦ㚡8㥝㾕:Ӓ,㛙Ӿ
+卷内编号
+项目编号: HD20241101SR005
+数字医疗智慧晨会协同与决策支撑平台分  类:
+TITLE  \* MERGEFORMAT 数据库设计说明书
+项 目 承 担 部 门：
+撰  写  人（签名）： 黄祺昊
+完   成   日   期： 2026-5-11
+本文档 使 用部门：□主管领导     ■项目组
+□客户（市场）  ■维护人员  □用户
+评审负责人（签名）：
+评    审   日  期：  2026-5-12                                     文档信息
+标题: 数字医疗智慧晨会协同与决策支撑平台数据库设计说明书作者: 创建日期: 2026-5-10上次更新日期: 2026-5-11版本:Build1.0部门名称:
+修订文档历史记录
+日期版本说明作者2026-5-100.1.20260510草稿黄祺昊2026-5-111.0.20260511正式发布黄祺昊
+HYPERLINK \l _Toc5500 1.1 编写目的	 PAGEREF _Toc5500 \h 1
+HYPERLINK \l _Toc23968 1.4 参考资料	 PAGEREF _Toc23968 \h 1
+HYPERLINK \l _Toc3254 2. 外部设计	 PAGEREF _Toc3254 \h 1
+HYPERLINK \l _Toc1135 2.1 类型划分	 PAGEREF _Toc1135 \h 1
+HYPERLINK \l _Toc18248 2.2 标识符和约定	 PAGEREF _Toc18248 \h 1
+HYPERLINK \l _Toc5601 2.3 数据库表设计格式说明	 PAGEREF _Toc5601 \h 1
+HYPERLINK \l _Toc25878 2.4 支持软件	 PAGEREF _Toc25878 \h 4
+HYPERLINK \l _Toc1320 3. 结构设计	 PAGEREF _Toc1320 \h 4
+HYPERLINK \l _Toc32722 4. 运用设计	 PAGEREF _Toc32722 \h 5
+HYPERLINK \l _Toc13158 4.1 数据字典设计	 PAGEREF _Toc13158 \h 5
+HYPERLINK \l _Toc20836 4.2 数据字典备注安全保密设计	 PAGEREF _Toc20836 \h 5
+编写目的
+本文档为数字医疗智慧晨会协同与决策支撑平台提供数据库设计依据，明确数据存储结构、字段规范、关联关系与索引策略，为开发、测试、部署、配置管理与数据运维提供统一标准。
+平台面向医疗企业晨会管理痛点，实现晨会全流程数字化、智能化管控。
+SZYL：数字医疗智慧晨会协同与决策支撑平台
+DM：Data Mining 数据挖掘
+DW：Data Warehouse 数据仓库
+ETL：抽取 - 转换 - 加载
+CCB：变更控制委员会
+PPQA：过程与产品质量保证
+CM：配置管理型
+参考资料
+《虚拟仿真实训教学管理及资源共享云平台》软件需求规约
+外部设计
+类型划分
+主表：7个
+标识符和约定
+数据库表的命名是用表名的英文或英文缩写，编程实现简单易记！
+序号表名描述说明1bi_stat_指标统计2bi_dw_数据仓库主题3bi_warn_异常预警4bi_chart_可视化配置5bi_log_日志与审计
+数据库表设计格式说明
+数据字典与指标维度表（bi_dim_dict）
+字段中文名字段名字段类型不为空主键外键字典ididbigint是是否字典编码dict_codevarchar(64)是否否字典名称dict_namevarchar(255)是否否字典类型dict_typevarchar(32)否否否排序号sortint否否否状态statusint否否否创建时间create_timevarchar(20)否否否更新时间update_timevarchar(20)否否否备注profilevarchar(1000)否否否晨会统计指标事实表（bi_stat_meeting）
+字段中文名字段名字段类型不为空主键外键统计ididbigint是是否统计日期stat_datevarchar(255)是否否科室iddept_idbigint否否否科室名称dept_namevarchar(255)否否否晨会场次meeting_countint否否否应到人数should_numint否否否实到人数real_numint否否否参会率attend_ratedecimal(5,2)否否否迟到人数late_numint否否是缺席人数absent_numint否否否平均时长avg_durationint否否否创建时间create_timevarchar(20)否否否问题督办统计事实表（bi_stat_supervise）
+字段中文名字段名字段类型不为空主键外键统计ididbigint是是否统计日期stat_datevarchar(255)是否否科室iddept_idbigint否否是问题总数total_countint否否否已解决solved_countint否否否解决率solve_ratedecimal(5,2)否否否逾期数overdue_countint否否否紧急问题数urgent_countint否否否平均处理时长avg_handle_hourint否否否创建时间create_timevarchar(20)否否否医疗业务指标事实表（bi_stat_medical）
+字段中文名字段名类型不为空主键外键统计 IDidbigint是是否统计日期stat_datedate是否否科室 IDdept_idbigint否否是指标编码index_codevarchar(64)否否否指标名称index_namevarchar(255)否否否指标值index_valuedecimal(18,2)否否否目标值target_valuedecimal(18,2)否否否完成率complete_ratedecimal(5,2)否否否创建时间create_timevarchar(20)否否否异常检测与预警表（bi_warn_record）
+字段中文名字段名字段类型不为空主键外键预警 IDidbigint是是否预警类型warn_typevarchar(32)否否否预警等级warn_levelint否否否科室 IDdept_idbigint否否是异常指标index_codevarchar(64)否否否异常值abnormal_valuevarchar(64)否否否阈值threshold_valuevarchar(64)否否否状态statusint否否否处理人handler_idbigint否否是处理时间handle_timevarchar(20)否否否生成时间create_timevarchar(20)否否否可视化大屏配置表（bi_chart_config）
+字段中文名字段名类型不为空主键外键配置 IDidbigint是是否图表编码chart_codevarchar(64)是否否图表名称chart_namevarchar(255)否否否图表类型chart_typevarchar(32)否否否数据源表source_tablevarchar(64)否否否权限角色role_idsvarchar(512)否否否是否启用enabledint否否否排序号sortint否否否更新时间update_timevarchar(20)否否否
+平台人员表（sm_gm_members）
+字段中文名字段名类型不为空主键外键日志 IDidbigint是是否用户 IDuser_idbigint否否是用户名user_namevarchar(64)否否否操作模块modulevarchar(64)否否否操作内容contentvarchar(512)否否否操作 IPipvarchar(64)否否否操作时间create_timevarchar(20)否否否执行结果resultint否否否晨会信息表（sm_meeting_info）
+字段中文名字段名字段类型不为空主键外键晨会 IDidbigint是是否晨会主题titlevarchar(255)否否否主持人 IDhost_idvarchar(50)否否是开始时间start_timevarchar(20)否否否结束时间end_timevarchar(20)否否否会议状态statusint否否否创建时间create_timevarchar(20)否否否晨会签到表（sm_meeting_signin）
+字段中文名字段名字段类型不为空主键外键签到 IDidbigint是是否晨会 IDmeeting_idbigint否否是用户 IDuser_idvarchar(50)否否是签到时间sign_timevarchar(20)否否否签到方式sign_typeint否否否签到状态sign_statusint否否否
+晨会发言转写表（sm_meeting_speech）
+字段中文名字段名字段类型不为空主键外键发言 IDidbigint是是否晨会 IDmeeting_idbigint否否是发言人 IDspeaker_idvarchar(50)否否是转写内容contentlongtext否否否发言时间speech_timevarchar(20)否否否发言要点key_pointstext否否否晨会交互表（sm_meeting_interaction）
+字段中文名字段名字段类型不为空主键外键交互 IDidbigint是是否晨会 IDmeeting_idbigint否否是用户 IDuser_idvarchar(50)否否是交互类型interact_typeint否否否交互内容contenttext否否否回复内容replytext否否否提交时间create_timevarchar(20)否否否晨会摘要表（sm_meeting_summary）
+字段中文名字段名字段类型不为空主键外键摘要 IDidbigint是是否晨会 IDmeeting_idbigint否否是汇报摘要summarylongtext否否否生成时间create_timevarchar(20)否否否2.3.13 数据源配置表（data_source_config）
+字段中文名字段名字段类型不为空主键备注数据源IDidbigint是是自增主键数据源编号source_codevarchar(50)是否唯一标识数据源名称source_namevarchar(100)是否如HIS门诊业务库数据源类型source_typevarchar(20)是否mysql/kafka/http/mongodb连接配置config_jsontext是否JSON格式存储连接参数采集状态statustinyint是否0=禁用，1=启用创建时间create_timedatetime是否修改时间update_timedatetime是否2.3.14 清洗后数据表（clean_data）
+存储经过清洗和标准化处理后的结构化数据。
+字段中文名字段名字段类型不为空主键备注清洗数据IDidbigint是是自增主键患者IDpatient_idvarchar(50)是否业务主键就诊时间visit_timedatetime是否年龄ageint否否性别gendervarchar(10)否否男/女诊断结果diagnosisvarchar(500)否否科室名称departmentvarchar(100)否否医生IDdoctor_idvarchar(50)否否质量评分quality_scoredecimal(5,2)是否0-100分创建时间create_timedatetime是否2.3.15 数据质量评分表（data_quality_score）
+存储每条清洗后数据的质量评分明细。
+字段中文名字段名字段类型不为空主键外键备注评分IDscore_idbigint是是否自增主键清洗数据IDdata_idbigint是否是关联clean_data表完整性得分completenessdecimal(5,2)是否否一致性得分consistencydecimal(5,2)是否否准确性得分accuracydecimal(5,2)是否否综合得分total_scoredecimal(5,2)是否否三项加权平均评分时间score_timedatetime是否否2.3.16 问题信息主表 （supervise_problem）
+字段中文名字段名类型非空主键外键说明问题 IDidbigint是是否自增问题标题titlevarchar(255)是否否问题描述contenttext否否否来源类型source_typeint否否否1 自动采集 2 手动录入录入人 IDcreator_idbigint否否是用户表负责人 IDassignee_idbigint否否是用户表问题分类categoryint否否否医疗 / 运维 / 管理风险等级risk_levelint否否否1 一般 2 重要 3 紧急优先级priorityint否否否AI 判定当前状态statusint否否否0 待分派 1 处理中 2 待复查 3 已结案创建时间create_timedatetime是否否更新时间update_timedatetime是否否2.3.17 任务分派表 （supervise_assign）
+字段中文名字段名类型非空主键外键分派 IDidbigint是是否问题 IDproblem_idbigint是否是分派对象 IDuser_idbigint是否是分派方式assign_typeint否否否操作人 IDoperator_idbigint否否是创建时间create_timedatetime是否否2.3.18 进度记录表 （supervise_progress）
+字段中文名字段名类型非空主键外键IDidbigint是是否问题 IDproblem_idbigint是否是进度百分比progressint否否否备注remarkvarchar(1024)否否否上报人reporter_idbigint否否是创建时间create_timedatetime是否否2.3.19 预警配置表 （supervise_alert_config）
+字段中文名字段名类型非空主键IDidbigint是是预警阈值小时threshold_hourint否否提醒渠道channelint否否状态statusint否否2.3.20 督办文书表 （supervise_document)
+字段中文名字段名类型非空主键外键IDidbigint是是否问题 IDproblem_idbigint是否是文书内容contentlongtext否否否生成方式gen_typeint否否否审核状态check_statusint否否否创建时间create_timedatetime是否否2.3.21 用户信息表 (supervise_user)
+字段中文名字段名类型非空主键用户 IDidbigint是是账号accountvarchar(64)是否姓名namevarchar(32)否否角色roleint否否部门deptvarchar(64)否否电话phonevarchar(16)否否状态statusint否否创建时间create_timedatetime是否2.3.22 晨会议程模板表（meeting_agenda_template）
+用于存储常用议程模板，支持大模型调用生成。
+字段中文名字段名类型非空主键外键说明模板 IDidbigint是是否自增模板名称template_namevarchar(255)是否否适用科室dept_idbigint否否是sm_org.id议程内容contenttext否否否创建人creator_idbigint否否是sm_gm_members.id创建时间create_timedatetime否否否更新时间update_timedatetime否否否状态statusint否否否0 禁用 1 启用2.3.23 晨会信息表（meeting_info）
+字段中文名字段名类型非空主键外键说明晨会 IDidbigint是是否自增晨会主题titlevarchar(255)是否否晨会类型meeting_typeint否否否1 科室 2 全院 3 专项举办科室dept_idbigint否否是sm_org.id主持人 IDhost_idbigint否否是sm_gm_members.id开始时间start_timedatetime否否否结束时间end_timedatetime否否否地点locationvarchar(255)否否否审批状态approve_statusint否否否0 草稿 1 审批中 2 通过 3 驳回创建人creator_idbigint否否是sm_gm_members.id创建时间create_timedatetime否否否更新时间update_timedatetime否否否2.3.24 晨会议程表（meeting_agenda）
+字段中文名字段名类型非空主键外键说明议程 IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id议程标题titlevarchar(255)是否否汇报人 IDspeaker_idbigint否否是sm_gm_members.id时长 (分钟)durationint否否否排序号sortint否否否创建时间create_timedatetime否否否2.3.25 会议材料表（meeting_material）
+字段中文名字段名类型非空主键外键说明材料 IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id材料名称material_namevarchar(255)是否否文件路径file_urlvarchar(512)否否否文件大小file_sizebigint否否否上传人uploader_idbigint否否是sm_gm_members.id审核状态check_statusint否否否0 待审核 1 通过 2 驳回审核意见check_opinionvarchar(512)否否否审核人checker_idbigint否否是sm_gm_members.id上传时间create_timedatetime否否否2.3.26 审批流程定义表（approve_process_def）
+字段中文名字段名类型非空主键外键说明流程 IDidbigint是是否流程名称process_namevarchar(255)是否否适用科室dept_idbigint否否是sm_org.id流程节点 JSONnodes_jsontext否否否存储节点配置创建人creator_idbigint否否是创建时间create_timedatetime否否否状态statusint否否否0 禁用 1 启用2.3.27 晨会审批记录表（approve_record）
+字段中文名字段名类型非空主键外键说明记录 IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id流程定义 IDprocess_idbigint否否是approve_process_def.id节点名称node_namevarchar(255)否否否审批人 IDapprover_idbigint否否是sm_gm_members.id审批动作actionint否否否1 通过 2 驳回 3 转审审批意见opinionvarchar(512)否否否审批时间approve_timedatetime否否否2.3.28 参会人员表（meeting_attendee）
+字段中文名字段名类型非空主键外键说明IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id用户 IDuser_idbigint是否是sm_gm_members.id参会角色role_typeint否否否1 主持人 2 汇报人 3 参会人参会状态attend_statusint否否否0 未确认 1 参会 2 请假 3 缺席邀请时间invite_timedatetime否否否确认时间confirm_timedatetime否否否2.3.29 审批提醒表（approve_remind）
+字段中文名字段名类型非空主键外键说明IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id审批人 IDuser_idbigint否否是提醒类型remind_typeint否否否1 待办 2 超时 3 催办是否已读is_readint否否否0 未读 1 已读创建时间create_timedatetime否否否2.3.30 晨会归档表（meeting_archive）
+字段中文名字段名类型非空主键外键说明归档 IDidbigint是是否晨会 IDmeeting_idbigint是否是meeting_info.id归档内容 JSONarchive_jsontext否否否议程 + 材料 + 审批记录归档人archiver_idbigint否否是归档时间archive_timedatetime否否否存储路径file_pathvarchar(512)否否否
+支持软件
+结构设计
+①．概念模型：
+②．物理模型：
+运用设计
+数据字典设计
+数据字典（DD）：包括数据流，数据文件和数据项
+数据流和数据文件
+数据类型=数据类型编码+数据类型名称+数据类型备注
+数据字典=数据字典编号+数据字典编码+数据类型编码+数据字典名称+数据字典备注
+② 数据项:
+A．数据类型
+数据字典备注安全保密设计
+本系统的数据通过角色授权进行访问和操作，只有具有相应权限的用户才能进行相应的操作。
+角色可访问的表操作权限说明系统管理员全部表增、删、改、查拥有所有数据管理权限数据管理员data_source_config增、删、改、查可配置数据源质量分析员data_quality_score查、改可查看质量评分普通业务人员clean_data查仅可查询清洗后数据
+TITLE  \* MERGEFORMAT 数据库设计说明书《数字医疗智慧晨会协同与决策支撑平台》
+Add：四川成都市郫都区大禹东路66号菁蓉镇创新创业5区3栋   Tel: 028-82960160  第 PAGE 12页  共15页
+Add：四川成都市郫都区大禹东路66号菁蓉镇创新创业5区3栋  Tel: 028-82960160 第 PAGE 12页  共5页
+Add：四川成都市郫都区大禹东路66号菁蓉镇创新创业5区3栋   Tel: 028-82960160  第 PAGE 12页  共13页
+撄崀撄ᘀĤ晉ࠠࠢ࠰࠲k怀X܀␖䤁ɦ䬀Ĥ②̄Ф␖䤁ɦ䬀Ĥ錀␖䤁ɦ䬀Ĥ㨁ୖ᠀϶㐀ۖĀ́혴ȁ氃㐀ۖĀ̄혴ࠁ氃ԀᣖĄĄĄĄĄĄ혓0ӿӿӿӿӿӿ܀徔ᐁǶ鐐´鐞´㑥ഁ怶鐏９혈0Ԃꀀ尅
+愀Ȥ␃ข撄崀撄ᘀĤ晉
+愀Ȥ␃ข撄崀撄ᘀĤ晉鄀␖䤁ɦ䬀Ĥ㨁ୖ᠀϶㐀ۖĀ́혴ȁ氃㐀ۖĀ̄혴ࠁ氃ԀᣖĄĄĄĄĄĄ혓0ӿӿӿӿӿӿ᐀Ƕ鐐´鐞´㑥ഁ怶鐏９혈0Ԃꀀ尅
+撄崀撄ᘀĤ晉
+愀Ȥ␃ข撄崀撄ᘀĤ晉܀࢘ࢤऄआईऊऌ褀z樀Z吀NሆᘀĤ晉ᘀĤ晉ༀ겄市겄圂ꩄᇾ咄惽咄Ĥ晉ༀ겄市겄圂ꩄᇾ咄惽咄Ĥ晉㈏愀̤␃圃ᄀ임态임ᘁĤ晉㈉愀̤␃ᘃĤ晉氀␖ᜁĤ晉嘺혴ā㐀ۖĀ̂l혴Ё㐀ۖĀ̈l鐇ᅨꬃࠡブȀﾔۓℿ阁ﾔ혚ÿ᯿ࣖ혜ÿ᷿ࣖ혉ሂ쳌Ì홰
+쳿쳌ӕ혵́ܿ혵ą̂ᩬ܀ऌ॒६८॰দন৪৬ਾੀੴઠઢöäÏ쌀·需缀qഀ♀圀졄ᄀ墄怂墄ᘂĤ晉圀ᄁ怅ᘅĤ晉圀졄ᄀ墄怂墄ᘂĤ晉嘀ⱄᘁĤ晉圀졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉	愀Ĥ␃ᘁĤ晉	愀Ĥ␃ᘁĤ晉┉ሀᘀĤ晉┉ሀᘀĤ晉ഀઢଦନପୠóÕ攀U䈀ሀ%②̂Ȥ␖䤁Ŧ᠀ᦄᤇ҄ᬀꀦ鐐´鐞´ༀ␖䤁Ŧ᠀ᦄᤇ҄ᬀꀦ鐐´鐞´漀␖ᜁĤ晉嘺혴ā㐀ۖĀ̂l혴Ё㐀ۖĀ̈l㐃昁Ĵ鐇ẩꬃࠡブȀﾔۓℿĀ阁ﾔ혚ÿ᯿ࣖ혜ÿ᷿ࣖ혉ሂ쳌Ì홰
+쳿쳌ӕ혵́ܿ혵ą̂ᩬᄀ옍眂堆圁졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉圀졄ᄀ墄怂墄ᘂĤ晉ୠୢ୮ப洀k攀ᘀĤ晉Āᘀ.옍Ą&䘋搒ðꐓꐔ옍␆䀀द稀␖ᜁĤ晉嘺혴ā㐀ۖĀ̂l혴Ё㐀ۖĀ̈l㐃昁Ĵ鐇Δ范အ뒔Ḁ뒔攀Ĵ㘍ຠᦔ༇ҔࠀブȀﾔۊ℗Ā阁ﾔ혚ÿ᯿ࣖ혜ÿ᷿ࣖ혉ሂ쳌Ì홰
