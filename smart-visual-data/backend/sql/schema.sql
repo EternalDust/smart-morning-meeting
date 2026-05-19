@@ -1,3 +1,5 @@
+USE smm_db;
+
 -- 1. 数据字典与指标维度表
 CREATE TABLE `bi_dim_dict` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典id',
