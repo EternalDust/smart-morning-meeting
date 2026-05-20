@@ -17,23 +17,38 @@ def generate_mock_data():
     晨会数据、督办数据、医疗业务数据。
     """
     departments = ['Cardiology', 'Neurology', 'Pediatrics', 'Emergency', 'Surgery']
+    # 偶尔注入异常数据以触发预警
+    inject_anomaly = random.random() < 0.15  # 15% 概率产生异常
+
     dept = random.choice(departments)
-    
+    dept_id_map = {'Cardiology': 1, 'Neurology': 2, 'Pediatrics': 3, 'Emergency': 4, 'Surgery': 5}
+
     # 模拟参会应到与实到人数
     expected_attendees = random.randint(10, 50)
-    actual_attendees = random.randint(int(expected_attendees * 0.7), expected_attendees)
-    
+    if inject_anomaly:
+        actual_attendees = random.randint(0, int(expected_attendees * 0.5))  # 参会率骤降
+    else:
+        actual_attendees = random.randint(int(expected_attendees * 0.7), expected_attendees)
+
     # 模拟督办任务和解决数
     total_issues = random.randint(5, 20)
-    resolved_issues = random.randint(0, total_issues)
+    if inject_anomaly:
+        resolved_issues = random.randint(0, int(total_issues * 0.4))  # 解决率偏低
+    else:
+        resolved_issues = random.randint(int(total_issues * 0.6), total_issues)
 
     data = {
         "timestamp": int(time.time()),
         "department": dept,
+        "dept_id": dept_id_map[dept],
         "expected_attendees": expected_attendees,
         "actual_attendees": actual_attendees,
         "total_issues": total_issues,
-        "resolved_issues": resolved_issues
+        "resolved_issues": resolved_issues,
+        "late_num": random.randint(0, 8),
+        "overdue_count": random.randint(0, 15) if inject_anomaly else random.randint(0, 3),
+        "urgent_count": random.randint(0, 5),
+        "avg_duration": random.randint(10, 40) if not inject_anomaly else random.randint(1, 60),
     }
     return data
 
