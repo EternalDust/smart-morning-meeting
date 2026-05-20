@@ -49,6 +49,10 @@ logs/
 .env.*
 !.env.example
 
+# Node
+node_modules/
+dist/
+
 # Temp
 tmp/
 temp/
