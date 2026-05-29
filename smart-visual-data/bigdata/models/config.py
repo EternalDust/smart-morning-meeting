@@ -56,7 +56,7 @@ SCALER_PATH = MODEL_SAVE_DIR + "scaler.pkl"
 # ── 数据库（MySQL — 写入 bi_warn_record 表） ──
 MYSQL_HOST = "localhost"
 MYSQL_PORT = 3306
-MYSQL_DB = "smm_db"
+MYSQL_DB = "smart_meeting"
 MYSQL_USER = "root"
 MYSQL_PASSWORD = "hqh123"
 

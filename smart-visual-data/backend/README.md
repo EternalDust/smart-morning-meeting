@@ -7,7 +7,7 @@
 | 前端 | Vue 3 + Vite + ECharts 5 + Axios |
 | 后端 | Spring Boot 3.2.5 + Spring Security + MyBatis-Plus + WebSocket + Redis |
 | 大数据 | Apache Kafka + Spark Structured Streaming + scikit-learn + TensorFlow LSTM |
-| 数据库 | MySQL 8.0 (smm_db) |
+| 数据库 | MySQL 8.0 (smart_meeting) |
 
 ## 功能总览
 
@@ -125,7 +125,7 @@ smart-visual-data/
 
 ## 数据库表
 
-### 业务表（`smm_db`）
+### 业务表（`smart_meeting`）
 
 | 表名 | 说明 |
 |------|------|
@@ -136,7 +136,7 @@ smart-visual-data/
 | `bi_warn_record` | 异常告警记录 |
 | `bi_chart_config` | 大屏图表配置 |
 | `bi_dim_dict` | 数据字典 |
-| `sm_gm_members` | 人员信息日志 |
+| `sm_operation_log` | 操作日志表 |
 
 ## 从零启动
 

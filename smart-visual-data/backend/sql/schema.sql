@@ -1,4 +1,4 @@
-USE smm_db;
+USE smart_meeting;
 
 -- 1. 数据字典与指标维度表
 CREATE TABLE `bi_dim_dict` (
@@ -91,7 +91,7 @@ CREATE TABLE `bi_chart_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='可视化大屏配置表';
 
 -- 7. 平台人员操作日志表 (文档中字段属性属于操作日志)
-CREATE TABLE `sm_gm_members` (
+CREATE TABLE `sm_operation_log` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志 ID',
   `user_id` bigint DEFAULT NULL COMMENT '用户 ID',
   `user_name` varchar(64) DEFAULT NULL COMMENT '用户名',
@@ -101,4 +101,4 @@ CREATE TABLE `sm_gm_members` (
   `create_time` varchar(20) DEFAULT NULL COMMENT '操作时间',
   `result` int DEFAULT NULL COMMENT '执行结果',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台人员(日志)表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';

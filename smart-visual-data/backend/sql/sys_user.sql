@@ -1,4 +1,4 @@
-USE smm_db;
+USE smart_meeting;
 
 CREATE TABLE IF NOT EXISTS sys_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

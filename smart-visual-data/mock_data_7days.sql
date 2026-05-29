@@ -1,4 +1,4 @@
-USE smm_db;
+USE smart_meeting;
 
 -- 清空存在的测试数据以防止记录重复
 TRUNCATE TABLE bi_stat_meeting;
@@ -27,7 +27,7 @@ VALUES
   ('2026-05-19', 103, 58, 48, 82.75, 4, 8, 36, '2026-05-19 09:00:00'),    -- 急诊科(科室 103)
   ('2026-05-19', 104, 48, 45, 93.75, 0, 2, 12, '2026-05-19 09:00:00');    -- 骨外科(科室 104)
 
-USE smm_db;
+USE smart_meeting;
 
 CREATE TABLE IF NOT EXISTS sys_user (
                                         id BIGINT AUTO_INCREMENT PRIMARY KEY,

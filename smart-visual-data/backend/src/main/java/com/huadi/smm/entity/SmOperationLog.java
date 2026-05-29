@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("sm_gm_members")
-public class SmGmMembers {
+@TableName("sm_operation_log")
+public class SmOperationLog {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
