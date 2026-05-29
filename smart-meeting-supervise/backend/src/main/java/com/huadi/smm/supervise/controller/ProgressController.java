@@ -33,7 +33,7 @@ public class ProgressController {
                 Long.valueOf(params.get("reporterId").toString()) : null);
 
         progressService.submitProgress(record);
-        return Result.success("进度上报成功", null);
+        return Result.ok("进度上报成功", null);
     }
 
     /**
@@ -43,7 +43,7 @@ public class ProgressController {
     @GetMapping("/history/{problemId}")
     public Result<List<ProgressRecord>> getHistory(@PathVariable Long problemId) {
         List<ProgressRecord> list = progressService.getProgressHistory(problemId);
-        return Result.success(list);
+        return Result.ok(list);
     }
 
     /**
@@ -56,6 +56,6 @@ public class ProgressController {
         Map<String, Object> result = new HashMap<>();
         result.put("problemId", problemId);
         result.put("progress", progress);
-        return Result.success(result);
+        return Result.ok(result);
     }
 }

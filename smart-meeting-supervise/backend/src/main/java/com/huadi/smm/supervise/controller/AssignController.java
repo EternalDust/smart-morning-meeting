@@ -25,7 +25,7 @@ public class AssignController {
     @PostMapping("/auto/{problemId}")
     public Result<AssignRecord> autoAssign(@PathVariable Long problemId) {
         AssignRecord record = assignService.autoAssign(problemId);
-        return Result.success("自动分派成功", record);
+        return Result.ok("自动分派成功", record);
     }
 
     /**
@@ -41,7 +41,7 @@ public class AssignController {
         String reason = params.get("reason") != null ? params.get("reason").toString() : null;
 
         assignService.manualAssign(problemId, userId, operatorId, reason);
-        return Result.success("改派成功", null);
+        return Result.ok("改派成功", null);
     }
 
     /**
@@ -53,6 +53,6 @@ public class AssignController {
         Long assigneeId = assignService.getCurrentAssignee(problemId);
         Map<String, Long> result = new HashMap<>();
         result.put("assigneeId", assigneeId);
-        return Result.success(result);
+        return Result.ok(result);
     }
 }

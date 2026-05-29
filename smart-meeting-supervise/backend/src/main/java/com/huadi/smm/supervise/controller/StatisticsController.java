@@ -24,6 +24,6 @@ public class StatisticsController {
     @GetMapping("/overview")
     public Result<Map<String, Object>> getOverview() {
         Map<String, Object> data = statisticsService.getOverview();
-        return Result.success(data);
+        return Result.ok(data);
     }
 }

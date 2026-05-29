@@ -35,7 +35,7 @@ public class DocumentController {
         Map<String, String> result = new HashMap<>();
         result.put("content", content);
         result.put("message", "文书生成成功");
-        return Result.success(result);
+        return Result.ok(result);
     }
 
     /**
@@ -49,7 +49,7 @@ public class DocumentController {
         Integer status = Integer.valueOf(params.get("status").toString());
         documentService.auditDocument(id, status);
         String msg = status == 1 ? "审核通过" : "审核驳回";
-        return Result.success(msg, null);
+        return Result.ok(msg, null);
     }
 
     /**
@@ -59,6 +59,6 @@ public class DocumentController {
     @GetMapping("/list/{problemId}")
     public Result<List<Document>> getDocumentsByProblemId(@PathVariable Long problemId) {
         List<Document> list = documentService.getDocumentsByProblemId(problemId);
-        return Result.success(list);
+        return Result.ok(list);
     }
 }
