@@ -8,6 +8,6 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
 
-    @Select("SELECT * FROM sm_supervise_user WHERE account = #{account}")
+    @Select("SELECT * FROM sm_gm_members WHERE account = #{account}")
     User findByAccount(String account);
 }

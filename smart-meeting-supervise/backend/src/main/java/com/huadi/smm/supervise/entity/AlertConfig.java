@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 @Data
-@TableName("sm_supervise_alert_config")
+@TableName("sm_alert_config")
 public class AlertConfig {
 
     @TableId(type = IdType.AUTO)

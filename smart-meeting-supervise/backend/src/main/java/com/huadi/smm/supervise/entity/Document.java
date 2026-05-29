@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sm_supervise_document")
+@TableName("sm_document")
 public class Document {
 
     @TableId(type = IdType.AUTO)

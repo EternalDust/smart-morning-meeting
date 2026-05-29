@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sm_supervise_progress")
+@TableName("sm_progress")
 public class ProgressRecord {
 
     @TableId(type = IdType.AUTO)

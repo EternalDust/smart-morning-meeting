@@ -9,7 +9,7 @@ public class Result<T> {
     private String msg;
     private T data;
 
-    public static <T> Result<T> success(T data) {
+    public static <T> Result<T> ok(T data) {
         Result<T> result = new Result<>();
         result.setSuccess(true);
         result.setCode(200);
@@ -18,7 +18,7 @@ public class Result<T> {
         return result;
     }
 
-    public static <T> Result<T> success(String msg, T data) {
+    public static <T> Result<T> ok(String msg, T data) {
         Result<T> result = new Result<>();
         result.setSuccess(true);
         result.setCode(200);
@@ -27,7 +27,7 @@ public class Result<T> {
         return result;
     }
 
-    public static <T> Result<T> error(Integer code, String msg) {
+    public static <T> Result<T> fail(Integer code, String msg) {
         Result<T> result = new Result<>();
         result.setSuccess(false);
         result.setCode(code);
@@ -35,7 +35,7 @@ public class Result<T> {
         return result;
     }
 
-    public static <T> Result<T> error(String msg) {
-        return error(500, msg);
+    public static <T> Result<T> fail(String msg) {
+        return fail(500, msg);
     }
 }

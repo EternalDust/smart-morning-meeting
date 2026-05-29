@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("sm_supervise_assign")
+@TableName("sm_assign")
 public class AssignRecord {
 
     @TableId(type = IdType.AUTO)
