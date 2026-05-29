@@ -31,7 +31,7 @@ public class SignController {
     @PostMapping("/in")
     public Result<?> signIn(@RequestBody Map<String, Object> body) {
         Long meetingId = Long.valueOf(body.get("meetingId").toString());
-        String userId = (String) body.get("userId");
+        Long userId = Long.valueOf(body.get("userId").toString());
         Integer signType = (Integer) body.getOrDefault("signType", 2);
 
         SignService.Result sr = signService.signIn(meetingId, userId, signType);

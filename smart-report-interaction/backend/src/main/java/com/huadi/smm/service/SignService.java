@@ -28,7 +28,8 @@ public class SignService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public Result signIn(Long meetingId, String userId, Integer signType) {
+    public Result signIn(Long meetingId, Long userId, Integer signType) {
+        String userIdStr = String.valueOf(userId);
         MeetingInfo meeting = meetingInfoMapper.selectById(meetingId);
         if (meeting == null) {
             return new Result("晨会不存在");
@@ -42,7 +43,7 @@ public class SignService {
         }
 
         LambdaQueryWrapper<SignIn> sq = new LambdaQueryWrapper<>();
-        sq.eq(SignIn::getMeetingId, meetingId).eq(SignIn::getUserId, userId);
+        sq.eq(SignIn::getMeetingId, meetingId).eq(SignIn::getUserId, userIdStr);
         SignIn existing = signInMapper.selectOne(sq);
         if (existing != null) {
             return new Result("已签到，请勿重复签到");
@@ -50,7 +51,7 @@ public class SignService {
 
         SignIn record = new SignIn();
         record.setMeetingId(meetingId);
-        record.setUserId(userId);
+        record.setUserId(userIdStr);
         record.setSignType(signType);
         record.setSignTime(LocalDateTime.now().format(FMT));
 
