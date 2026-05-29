@@ -1,7 +1,7 @@
 package com.huadi.smm.service;
 
-import com.huadi.smm.dao.ApproveRecordRepository;
-import com.huadi.smm.dao.MeetingInfoRepository;
+import com.huadi.smm.dao.ApproveRecordMapper;
+import com.huadi.smm.dao.MeetingInfoMapper;
 import com.huadi.smm.entity.ApproveRecord;
 import com.huadi.smm.entity.MeetingInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,19 +14,19 @@ import java.util.Date;
 public class ApproveService {
 
     @Autowired
-    private MeetingInfoRepository meetingInfoRepository;
+    private MeetingInfoMapper meetingInfoMapper;
 
     @Autowired
-    private ApproveRecordRepository approveRecordRepository;
+    private ApproveRecordMapper approveRecordMapper;
 
     @Transactional
     public boolean submitApprove(Long meetingId) {
-        MeetingInfo meeting = meetingInfoRepository.findById(meetingId).orElse(null);
+        MeetingInfo meeting = meetingInfoMapper.selectById(meetingId);
         if (meeting == null || meeting.getApproveStatus() == null || meeting.getApproveStatus() != 0) {
             return false;
         }
         meeting.setApproveStatus(1);
-        meetingInfoRepository.save(meeting);
+        meetingInfoMapper.updateById(meeting);
         return true;
     }
 
@@ -35,7 +35,7 @@ public class ApproveService {
         if (action == null || (action != 1 && action != 2)) {
             return false;
         }
-        MeetingInfo meeting = meetingInfoRepository.findById(meetingId).orElse(null);
+        MeetingInfo meeting = meetingInfoMapper.selectById(meetingId);
         if (meeting == null || meeting.getApproveStatus() == null || meeting.getApproveStatus() != 1) {
             return false;
         }
@@ -45,10 +45,10 @@ public class ApproveService {
         record.setAction(action);
         record.setOpinion(opinion);
         record.setApproveTime(new Date());
-        approveRecordRepository.save(record);
+        approveRecordMapper.insert(record);
 
         meeting.setApproveStatus(action == 1 ? 2 : 3);
-        meetingInfoRepository.save(meeting);
+        meetingInfoMapper.updateById(meeting);
         return true;
     }
 }

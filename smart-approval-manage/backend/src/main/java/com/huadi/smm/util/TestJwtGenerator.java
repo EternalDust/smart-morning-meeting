@@ -3,13 +3,13 @@ package com.huadi.smm.util;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TestJwtGenerator {
     public static void main(String[] args) {
-        // 注意：如果 application.yml 中通过环境变量修改了 jwt.secret，请同步修改下面的 secret 值
         String secret = "medical-meeting-2026-secret-2026";
 
         Map<String, Object> claims = new HashMap<>();
@@ -23,7 +23,7 @@ public class TestJwtGenerator {
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(expiry)
-                .signWith(SignatureAlgorithm.HS256, secret)
+                .signWith(SignatureAlgorithm.HS256, secret.getBytes(StandardCharsets.UTF_8))
                 .compact();
 
         System.out.println("============================================");

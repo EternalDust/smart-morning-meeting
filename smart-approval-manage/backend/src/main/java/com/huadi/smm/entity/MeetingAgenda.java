@@ -1,30 +1,21 @@
 package com.huadi.smm.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import javax.persistence.*;
+
 import java.util.Date;
 
 @Data
-@Entity
-@Table(name = "meeting_agenda")
+@TableName("sm_meeting_agenda")
 public class MeetingAgenda {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
-
-    @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
-
-    @Column(nullable = false)
     private String title;
-
-    @Column(name = "speaker_id")
     private Long speakerId;
-
     private Integer duration;
-
     private Integer sort;
-
-    @Column(name = "create_time")
     private Date createTime;
 }

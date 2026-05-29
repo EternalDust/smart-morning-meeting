@@ -15,7 +15,8 @@ public class JwtInterceptor implements HandlerInterceptor {
     private JwtUtil jwtUtil;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws
+            Exception {
         String auth = request.getHeader("Authorization");
         if (auth == null || !auth.startsWith("Bearer ")) {
             response.setStatus(401);
@@ -32,6 +33,8 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
         request.setAttribute("user_info", claims);
+        // 新增：方便业务层直接取当前用户ID
+        request.setAttribute("user_id", claims.get("user_id"));
         return true;
     }
 }

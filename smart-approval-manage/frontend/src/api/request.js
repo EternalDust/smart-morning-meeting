@@ -16,6 +16,10 @@ request.interceptors.request.use(config => {
 request.interceptors.response.use(response => {
     const res = response.data
     if (!res.success) {
+        if (res.code === 401) {
+            localStorage.removeItem('token')
+            window.location.href = '/login'
+        }
         return Promise.reject(new Error(res.msg || '请求失败'))
     }
     return res.data

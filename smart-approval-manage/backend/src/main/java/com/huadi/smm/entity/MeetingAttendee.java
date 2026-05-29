@@ -1,29 +1,20 @@
 package com.huadi.smm.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import javax.persistence.*;
+
 import java.util.Date;
 
 @Data
-@Entity
-@Table(name = "meeting_attendee")
+@TableName("sm_meeting_attendee")
 public class MeetingAttendee {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
-
-    @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
-
-    @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "role_type")
     private Integer roleType;
-
-    @Column(name = "attend_status")
     private Integer attendStatus;
-
-    @Column(name = "invite_time")
     private Date inviteTime;
 }

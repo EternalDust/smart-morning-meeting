@@ -1,33 +1,22 @@
 package com.huadi.smm.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import javax.persistence.*;
+
 import java.util.Date;
 
 @Data
-@Entity
-@Table(name = "sm_approve_record")
+@TableName("sm_approve_record")
 public class ApproveRecord {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
-
-    @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
-
-    @Column(name = "process_id")
     private Long processId;
-
-    @Column(name = "node_name")
     private String nodeName;
-
-    @Column(name = "approver_id")
     private Long approverId;
-
     private Integer action;
-
     private String opinion;
-
-    @Column(name = "approve_time")
     private Date approveTime;
 }
