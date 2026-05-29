@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huadi.smm.supervise.mapper.ProblemMapper">
+
+    <select id="statisticsByStatus" resultType="java.util.Map">
+        SELECT status, COUNT(*) as count
+        FROM sm_supervise_problem
+        GROUP BY status
+    </select>
+
+    <select id="statisticsByCategory" resultType="java.util.Map">
+        SELECT category, COUNT(*) as count
+        FROM sm_supervise_problem
+        GROUP BY category
+    </select>
+
+</mapper>
