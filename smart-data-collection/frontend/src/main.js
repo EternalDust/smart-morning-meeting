@@ -1,3 +1,7 @@
+// 从统一入口接收token
+const urlToken = new URLSearchParams(window.location.search).get('token')
+if (urlToken) localStorage.setItem('token', urlToken)
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'

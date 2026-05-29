@@ -25,6 +25,9 @@ const router = createRouter({
     routes
 })
 
+const urlToken = new URLSearchParams(window.location.search).get('token')
+if (urlToken) localStorage.setItem('token', urlToken)
+
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
     if (!to.meta.public && !token) {

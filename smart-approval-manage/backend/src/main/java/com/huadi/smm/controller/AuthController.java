@@ -17,7 +17,7 @@ public class AuthController {
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
-        String token = jwtUtil.generateToken(username);
+        String token = jwtUtil.generateToken(Long.parseLong(username), "admin");
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("code", 200);

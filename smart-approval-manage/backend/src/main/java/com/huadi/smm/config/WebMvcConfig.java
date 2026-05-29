@@ -24,9 +24,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/api/agenda/**")
-                // 明确排除 public 路径，解决前端拿不到 token 时无法登录的问题
-                .excludePathPatterns("/api/agenda/public/**");
+        // 演示模式：放通所有API
+        // registry.addInterceptor(jwtInterceptor)
+        //         .addPathPatterns("/api/agenda/**")
+        //         .excludePathPatterns("/api/agenda/public/**", "/api/auth/**");
     }
 }

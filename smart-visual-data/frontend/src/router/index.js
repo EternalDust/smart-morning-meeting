@@ -25,7 +25,10 @@ const router = createRouter({
   routes
 })
 
-// 全局路由守卫
+// 从统一入口接收token
+const urlToken = new URLSearchParams(window.location.search).get('token')
+if (urlToken) localStorage.setItem('token', urlToken)
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
   if (to.meta.requiresAuth && !token) {

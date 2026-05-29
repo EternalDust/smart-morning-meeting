@@ -33,7 +33,10 @@ const systems = [
   { name:'问题督办与闭环管理', desc:'问题登记 · 分派 · 进度跟踪 · 结案', url:'http://localhost:5177', color:'#DC2626', icon: Warning },
 ]
 
-const open = (url) => window.open(url, '_blank')
+const open = (url) => {
+  const token = localStorage.getItem('token') || ''
+  window.open(url + '?token=' + encodeURIComponent(token), '_blank')
+}
 
 const logout = () => {
   localStorage.clear()

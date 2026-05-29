@@ -2,6 +2,7 @@ package com.huadi.smm.workbench.controller;
 
 import com.huadi.smm.common.entity.R;
 import com.huadi.smm.common.utils.JwtUtil;
+import io.jsonwebtoken.Claims;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -55,7 +56,7 @@ public class AuthController {
         if (!JwtUtil.validateToken(token)) {
             return R.error(401, "Token无效或已过期");
         }
-        var claims = JwtUtil.parseToken(token);
+        Claims claims = JwtUtil.parseToken(token);
         Map<String, Object> info = new HashMap<>();
         info.put("userId", claims.get("userId"));
         info.put("username", claims.get("username"));

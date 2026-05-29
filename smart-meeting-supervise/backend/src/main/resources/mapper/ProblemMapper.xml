@@ -5,13 +5,13 @@
 
     <select id="statisticsByStatus" resultType="java.util.Map">
         SELECT status, COUNT(*) as count
-        FROM sm_supervise_problem
+        FROM sm_problem
         GROUP BY status
     </select>
 
     <select id="statisticsByCategory" resultType="java.util.Map">
         SELECT category, COUNT(*) as count
-        FROM sm_supervise_problem
+        FROM sm_problem
         GROUP BY category
     </select>
 

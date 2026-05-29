@@ -23,6 +23,9 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
+const urlToken = new URLSearchParams(window.location.search).get('token')
+if (urlToken) localStorage.setItem('token', urlToken)
+
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
     if (to.path !== '/login' && !token) next('/login')

@@ -13,8 +13,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/api/dashboard/**")
-                .excludePathPatterns("/api/auth/login", "/ws/**", "/api/dashboard/test-insert");
+        // 演示模式：放通所有API
+        // registry.addInterceptor(jwtInterceptor)
+        //         .addPathPatterns("/api/dashboard/**")
+        //         .excludePathPatterns("/api/auth/login", "/ws/**", "/api/dashboard/test-insert");
     }
 }
