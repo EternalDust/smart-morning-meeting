@@ -8,10 +8,10 @@
 
 | 子系统 | 英文目录 | 负责人 | 进度 |
 |--------|---------|--------|------|
-| 晨会全流程审批与议程管理 | `smart-meeting-approval` | 杨子亨 | 待提交 |
-| 医疗多源数据采集与治理 | `smart-data-collection` | 曹丁兮 | 待提交 |
+| 晨会全流程审批与议程管理 | `smart-meeting-approval` | 杨子亨 | 已提交 |
+| 医疗多源数据采集与治理 | `smart-data-collection` | 曹丁兮 | 已提交 |
 | 晨会智能汇报与实时交互 | `smart-report-interaction` | 汪宇涵 | 已提交 |
-| 晨会问题督办与闭环管理 | `smart-meeting-supervise` | 巴格达 | 待提交 |
+| 晨会问题督办与闭环管理 | `smart-meeting-supervise` | 巴格达 | 已提交 |
 | 大数据分析与可视化决策 | `smart-visual-data` | 黄祺昊 | 已提交 |
 
 子系统之间的数据流：
@@ -71,12 +71,15 @@ npm run dev
 
 ### 4. 当前端口
 
-| 子系统 | 后端 | 前端 dev |
-|--------|------|---------|
-| smart-report-interaction | 8081 | 5173 |
-| smart-visual-data | 8080 | 5173（如果同时跑，Vite 会自动切到 5174） |
+| 子系统 | 后端端口 |
+|--------|---------|
+| smart-visual-data | 8080 |
+| smart-report-interaction | 8081 |
+| smart-meeting-approval | 8082 |
+| smart-data-collection | 8083 |
+| smart-meeting-supervise | 8084 |
 
-后续三个子系统建议从 8082 开始依次往下排。`application.yml` 里改 `server.port` 就行。
+前端 Vite 默认 5173，同时跑多份会自动切 5174、5175。`application.yml` 和 `vite.config.js` 里各改各的。
 
 ## 开发规范
 
@@ -99,7 +102,16 @@ npm run dev
 
 `success: false` 的时候 `code` 写错误码，`msg` 写错误原因。不要只返回字符串，也别每个接口格式不一样。
 
-认证用 JWT，请求头带 `Authorization: Bearer <token>`。开发阶段可以先放通，别删掉 JWT 占位就行。
+认证用 JWT，请求头带 `Authorization: Bearer <token>`。
+
+**统一 JWT 配置：**
+
+```yaml
+secret: smart-morning-meeting-2026
+过期:   24小时
+```
+
+`JwtUtil` 里这两项跟上面一致就行。开发阶段可以先把拦截器放通，但 JWT 工具类留着别删，后面统一接入。
 
 ### 数据库
 
@@ -118,9 +130,9 @@ npm run dev
 | 表 | 用途 | 当前维护者 |
 |---|---|---|
 | `sm_gm_members` | 人员信息（工号、姓名、部门） | 汪宇涵 |
-| `sm_meeting_info` | 晨会主表 | 杨子亨（待建） |
+| `sm_meeting_info` | 晨会主表 | 杨子亨 |
 | `meeting_attendee` | 参会人员名单 | 汪宇涵 |
-| `meeting_agenda` | 议程表 | 杨子亨（待建） |
+| `meeting_agenda` | 议程表 | 杨子亨 |
 | `sm_org` | 组织/科室结构 | 待定 |
 
 自己子系统的业务表各人自己建、自己维护，放进各自的 `sql/init.sql`。
