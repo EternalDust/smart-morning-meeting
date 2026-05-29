@@ -7,12 +7,16 @@ import com.huadi.smm.dto.MeetingCreateRequest;
 import com.huadi.smm.entity.*;
 import com.huadi.smm.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/agenda")
@@ -32,6 +36,9 @@ public class AgendaController {
     @Autowired
     private ApproveRecordService approveRecordService;
 
+    @Value("${upload.path}")
+    private String uploadPath;
+
     // ========== 会议信息 ==========
     @GetMapping("/meetings")
     public Result<List<MeetingInfo>> listMeetings() {
@@ -48,7 +55,7 @@ public class AgendaController {
     }
 
     @PostMapping("/meetings")
-    public Result<MeetingInfo> createMeeting(@Valid @RequestBody MeetingCreateRequest req, HttpServletRequest request) {
+    public Result<MeetingInfo> createMeeting(@Valid @RequestBody MeetingCreateRequest req) {
         MeetingInfo meeting = new MeetingInfo();
         meeting.setTitle(req.getTitle());
         meeting.setMeetingType(req.getMeetingType());
@@ -57,8 +64,7 @@ public class AgendaController {
         meeting.setStartTime(req.getStartTime());
         meeting.setEndTime(req.getEndTime());
         meeting.setLocation(req.getLocation());
-        Object userId = request.getAttribute("user_id");
-        meeting.setCreatorId(userId != null ? Long.valueOf(userId.toString()) : null);
+        meeting.setCreatorId(1L);
         return Result.ok(meetingService.save(meeting));
     }
 
@@ -66,7 +72,8 @@ public class AgendaController {
     @PostMapping("/ai-generate")
     public Result<List<String>> aiAgendaGenerate(@Valid @RequestBody AiGenerateRequest data) {
         try {
-            List<String> result = agendaService.createAiAgenda(data.getMeetingId(), data.getDeptName(), data.getMeetingType());
+            List<String> result = agendaService.createAiAgenda(data.getMeetingId(), data.getDeptName(),
+                    data.getMeetingType());
             return Result.ok(result);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return Result.fail(e.getMessage(), 400);
@@ -88,7 +95,8 @@ public class AgendaController {
     @PostMapping("/{meetingId}/handle")
     public Result<Boolean> handleApprove(@PathVariable Long meetingId,
                                          @Valid @RequestBody HandleApproveRequest data) {
-        boolean result = approveService.handleApprove(meetingId, data.getApproverId(), data.getAction(), data.getOpinion());
+        boolean result = approveService.handleApprove(meetingId, data.getApproverId(), data.getAction(),
+                data.getOpinion());
         if (!result) {
             return Result.fail("审批处理失败，会议不存在或状态不允许", 400);
         }
@@ -134,10 +142,40 @@ public class AgendaController {
         return Result.ok(materialService.listByMeetingId(meetingId));
     }
 
-    @PostMapping("/{meetingId}/materials")
-    public Result<MeetingMaterial> addMaterial(@PathVariable Long meetingId, @RequestBody MeetingMaterial material) {
+    @PostMapping("/{meetingId}/materials/upload")
+    public Result<MeetingMaterial> uploadMaterial(
+            @PathVariable Long meetingId,
+            @RequestParam("file") MultipartFile file) throws IOException {
+
+        if (file.isEmpty()) {
+            return Result.fail("文件不能为空", 400);
+        }
+
+        String originalName = file.getOriginalFilename();
+        if (originalName == null) {
+            return Result.fail("文件名获取失败", 400);
+        }
+
+        File dir = new File(uploadPath);
+        if (!dir.exists() && !dir.mkdirs()) {
+            return Result.fail("创建上传目录失败", 500);
+        }
+
+        int lastDot = originalName.lastIndexOf(".");
+        String suffix = lastDot > 0 ? originalName.substring(lastDot) : "";
+        String fileName = UUID.randomUUID() + suffix;
+
+        File dest = new File(dir, fileName);
+        file.transferTo(dest);
+
+        MeetingMaterial material = new MeetingMaterial();
         material.setMeetingId(meetingId);
-        return Result.ok(materialService.saveMaterial(material));
+        material.setMaterialName(originalName);
+        material.setFileUrl("/uploads/materials/" + fileName);
+        material.setFileSize(file.getSize());
+
+        materialService.saveMaterial(material);
+        return Result.ok(material);
     }
 
     @DeleteMapping("/materials/{materialId}")

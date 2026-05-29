@@ -23,7 +23,9 @@ public class MeetingService {
     }
 
     public MeetingInfo save(MeetingInfo meeting) {
-        meeting.setApproveStatus(0);
+        if (meeting.getApproveStatus() == null) {
+            meeting.setApproveStatus(0);
+        }
         meeting.setCreateTime(new Date());
         meeting.setUpdateTime(new Date());
         meetingInfoMapper.insert(meeting);
