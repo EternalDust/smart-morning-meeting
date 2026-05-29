@@ -8,7 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("anomaly_record")
+@TableName("data_anomaly_record")
 public class AnomalyRecord {
 
     @TableId(type = IdType.AUTO)

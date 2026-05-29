@@ -8,7 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("raw_data")
+@TableName("data_raw_data")
 public class RawData {
 
     @TableId(type = IdType.AUTO)

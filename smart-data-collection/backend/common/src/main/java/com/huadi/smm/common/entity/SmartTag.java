@@ -5,23 +5,19 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("data_clean_data")
-public class CleanData {
+@TableName("data_smart_tag")
+public class SmartTag {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private String patientId;
-    private LocalDateTime visitTime;
-    private Integer age;
-    private String gender;
-    private String diagnosis;
-    private String department;
-    private String doctorId;
-    private BigDecimal qualityScore;
+    private String entityType;
+    private String entityId;
+    private String tagName;
+    private String tagLevel;
+    private String tagRule;
     private LocalDateTime createTime;
 }

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("cleaning_rule")
+@TableName("data_cleaning_rule")
 public class CleaningRule {
 
     @TableId(type = IdType.AUTO)

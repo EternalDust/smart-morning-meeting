@@ -6,10 +6,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
+
+    private static final Set<String> VALID_USERS = Set.of(
+        "admin", "manager", "zhangyi", "liuyi", "wangfang", "chenwei", "zhaoxin"
+    );
 
     /**
      * 登录接口——开发阶段简化实现
@@ -25,6 +30,10 @@ public class AuthController {
         }
         if (password == null || password.isEmpty()) {
             return R.error(400, "密码不能为空");
+        }
+
+        if (!VALID_USERS.contains(username)) {
+            return R.error(401, "用户不在允许的测试名单中");
         }
 
         // 开发阶段使用固定账号

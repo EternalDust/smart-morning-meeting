@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS data_source_config (
 -- ---------------------------------------------------
 -- 原始数据表
 -- ---------------------------------------------------
-CREATE TABLE IF NOT EXISTS raw_data (
+CREATE TABLE IF NOT EXISTS data_raw_data (
     id            BIGINT   NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     source_code   VARCHAR(50)  NOT NULL COMMENT '关联数据源配置表',
     data_json     LONGTEXT     NOT NULL COMMENT '原始数据内容，JSON格式存储',
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS raw_data (
 -- ---------------------------------------------------
 -- 清洗规则表
 -- ---------------------------------------------------
-CREATE TABLE IF NOT EXISTS cleaning_rule (
+CREATE TABLE IF NOT EXISTS data_cleaning_rule (
     rule_id     BIGINT       NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     rule_name   VARCHAR(100) NOT NULL COMMENT '规则名称，如"就诊记录去重"',
     rule_type   VARCHAR(20)  NOT NULL COMMENT '规则类型: DEDUP/FORMAT/FILL/VALIDATE',
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS cleaning_rule (
 -- ---------------------------------------------------
 -- 清洗后数据表
 -- ---------------------------------------------------
-CREATE TABLE IF NOT EXISTS clean_data (
+CREATE TABLE IF NOT EXISTS data_clean_data (
     id            BIGINT        NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     patient_id    VARCHAR(50)   NOT NULL COMMENT '患者ID，业务主键',
     visit_time    DATETIME      NULL     COMMENT '就诊时间',
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS clean_data (
 -- ---------------------------------------------------
 -- 异常记录表
 -- ---------------------------------------------------
-CREATE TABLE IF NOT EXISTS anomaly_record (
+CREATE TABLE IF NOT EXISTS data_anomaly_record (
     id              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     indicator_name  VARCHAR(100) NOT NULL COMMENT '指标名称，如"门诊量"',
     indicator_value VARCHAR(100) NOT NULL COMMENT '指标值',
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS anomaly_record (
 -- ---------------------------------------------------
 -- 智能标签表
 -- ---------------------------------------------------
-CREATE TABLE IF NOT EXISTS smart_tag (
+CREATE TABLE IF NOT EXISTS data_smart_tag (
     id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     entity_type VARCHAR(50)  NOT NULL COMMENT '实体类型: doctor/department/patient',
     entity_id   VARCHAR(100) NOT NULL COMMENT '实体ID',
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS smart_tag (
 -- ---------------------------------------------------
 -- 初始化清洗规则数据
 -- ---------------------------------------------------
-INSERT INTO cleaning_rule (rule_name, rule_type, rule_config, priority, enabled) VALUES
+INSERT INTO data_cleaning_rule (rule_name, rule_type, rule_config, priority, enabled) VALUES
 ('就诊记录去重',      'DEDUP',    '{"keyFields":"patient_id,visit_time","strategy":"latest","windowMinutes":30}', 1, 1),
 ('日期格式标准化',    'FORMAT',   '{"field":"visit_time","sourceFormat":"auto","targetFormat":"yyyy-MM-dd HH:mm:ss"}', 2, 1),
 ('性别编码标准化',    'FORMAT',   '{"field":"gender","mapping":{"男":"0","女":"1","M":"0","F":"1"}}', 3, 1),
