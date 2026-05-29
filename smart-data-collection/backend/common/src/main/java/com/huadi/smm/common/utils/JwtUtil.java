@@ -10,8 +10,8 @@ import java.util.Map;
 
 public class JwtUtil {
 
-    private static final String SECRET = "smart-meeting-data-collection-jwt-secret-2024";
-    private static final long EXPIRE = 7 * 24 * 60 * 60 * 1000L; // 7天
+    private static final String SECRET = "smart-morning-meeting-2026";
+    private static final long EXPIRE = 86400000L; // 24小时
 
     public static String generateToken(Long userId, String username, String role) {
         Map<String, Object> claims = new HashMap<>();

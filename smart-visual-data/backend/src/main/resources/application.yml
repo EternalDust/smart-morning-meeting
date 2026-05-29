@@ -22,7 +22,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/smart_meeting?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
-    password: hqh123
+    password: ${DB_PASSWORD:hqh123}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 # MyBatis-plus 配置
