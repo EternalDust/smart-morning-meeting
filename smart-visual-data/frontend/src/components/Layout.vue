@@ -25,12 +25,8 @@
       </el-menu>
     </el-aside>
     <el-container>
-      <el-header style="background:#fff; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; padding:0 20px">
-        <span style="font-size:16px; font-weight:bold; color:#303133">数字医疗智慧晨会协同与决策支撑平台</span>
-        <div style="display:flex; align-items:center; gap:15px">
-          <span style="color:#606266">{{ userName }}</span>
-          <el-button type="danger" text @click="logout">退出</el-button>
-        </div>
+      <el-header style="background:#fff; border-bottom:1px solid #eee; display:flex; align-items:center; padding:0 20px">
+        <span style="font-size:16px; font-weight:bold; color:#303133">数字医疗智慧晨会协同与决策支撑平台 - 可视化大屏</span>
       </el-header>
       <el-main><router-view /></el-main>
     </el-container>
@@ -39,23 +35,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
 
-const router = useRouter()
 const route = useRoute()
-
-const userInfo = JSON.parse(localStorage.getItem('user') || '{}')
-const userName = computed(() => {
-  return userInfo?.deptName
-    ? `${userInfo.name || userInfo.userId} (${userInfo.deptName})`
-    : localStorage.getItem('userName') || '用户'
-})
 const currentRoute = computed(() => route.path)
-
-const logout = () => {
-  localStorage.clear()
-  ElMessage.success('已退出')
-  router.push('/login')
-}
 </script>

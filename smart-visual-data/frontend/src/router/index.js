@@ -1,13 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../views/Login.vue'
 import Layout from '../components/Layout.vue'
 
 const routes = [
-  {
-    path: '/login',
-    name: 'Login',
-    component: Login
-  },
   {
     path: '/',
     component: Layout,
@@ -44,7 +38,7 @@ if (urlToken) localStorage.setItem('token', urlToken)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
-    next('/login')
+    window.location.href = 'http://localhost:5000/'
   } else {
     next()
   }
