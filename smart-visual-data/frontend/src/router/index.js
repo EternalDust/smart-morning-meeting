@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
-import Dashboard from '../views/Dashboard.vue'
+import Layout from '../components/Layout.vue'
 
 const routes = [
   {
@@ -9,14 +9,27 @@ const routes = [
     component: Login
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/',
-    redirect: '/dashboard'
+    component: Layout,
+    meta: { requiresAuth: true },
+    redirect: '/attendance',
+    children: [
+      {
+        path: 'attendance',
+        name: 'Attendance',
+        component: () => import('../views/Attendance.vue')
+      },
+      {
+        path: 'problem-solving',
+        name: 'ProblemSolving',
+        component: () => import('../views/ProblemSolving.vue')
+      },
+      {
+        path: 'risk-prediction',
+        name: 'RiskPrediction',
+        component: () => import('../views/RiskPrediction.vue')
+      }
+    ]
   }
 ]
 
@@ -25,16 +38,15 @@ const router = createRouter({
   routes
 })
 
-// 从统一入口接收token
 const urlToken = new URLSearchParams(window.location.search).get('token')
 if (urlToken) localStorage.setItem('token', urlToken)
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
-    next('/login');
+    next('/login')
   } else {
-    next();
+    next()
   }
 })
 

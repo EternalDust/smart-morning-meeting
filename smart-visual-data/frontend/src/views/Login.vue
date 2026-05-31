@@ -1,106 +1,61 @@
 <template>
-  <div class="login-wrapper">
-    <div class="login-box">
-      <h2>智慧晨会系统登录</h2>
-      <div class="form-group">
-        <label>用户名</label>
-        <input type="text" v-model="username" placeholder="admin(高层) / ken101(中层) / staff101(基层)" />
-      </div>
-      <div class="form-group">
-        <label>密码</label>
-        <input type="password" v-model="password" placeholder="请输入 hqh123" @keyup.enter="handleLogin" />
-      </div>
-      <button @click="handleLogin" class="login-btn">登录</button>
-      <p class="error-msg" v-if="error">{{ error }}</p>
-    </div>
+  <div class="login-container">
+    <el-card class="login-card">
+      <h2 style="text-align:center; margin-bottom:30px">可视化数据大屏</h2>
+      <el-form>
+        <el-form-item>
+          <el-input v-model="form.username" placeholder="用户名" size="large">
+            <template #prefix><el-icon><User /></el-icon></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-input v-model="form.password" type="password" placeholder="密码" size="large" @keyup.enter="handleLogin">
+            <template #prefix><el-icon><Lock /></el-icon></template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="large" style="width:100%" @click="handleLogin">登录</el-button>
+        </el-form-item>
+      </el-form>
+      <div v-if="error" style="text-align:center; color:#f56c6c; font-size:13px; margin-top:10px">{{ error }}</div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
-const username = ref('admin')
-const password = ref('hqh123')
-const error = ref('')
 const router = useRouter()
+const form = reactive({ username: 'admin', password: 'hqh123' })
+const error = ref('')
 
 const handleLogin = async () => {
   try {
-    const res = await axios.post('http://localhost:8080/api/auth/login', {
-      username: username.value,
-      password: password.value
-    });
-    
+    const res = await axios.post('/api/auth/login', form)
     if (res.data.code === 200) {
-      // 登录成功，保存 token 和用户信息
-      localStorage.setItem('token', res.data.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.data.user));
-      // 跳转到大屏
-      router.push('/dashboard');
+      localStorage.setItem('token', res.data.data.token)
+      localStorage.setItem('user', JSON.stringify(res.data.data.user))
+      ElMessage.success('登录成功')
+      router.push('/attendance')
     } else {
-      error.value = res.data.message || '登录失败';
+      error.value = res.data.message || '登录失败'
     }
   } catch (err) {
-    error.value = '服务器连接异常';
-    console.error(err);
+    error.value = '服务器连接异常'
   }
 }
 </script>
 
 <style scoped>
-.login-wrapper {
+.login-container {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
-.login-box {
-  background: #fff;
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  width: 320px;
-  text-align: center;
-}
-.login-box h2 {
-  margin-bottom: 20px;
-  color: #3182ce;
-}
-.form-group {
-  margin-bottom: 15px;
-  text-align: left;
-}
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #606266;
-}
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-}
-.login-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: #3182ce;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-top: 10px;
-}
-.login-btn:hover {
-  background-color: #2b6cb0;
-}
-.error-msg {
-  color: #f56565;
-  margin-top: 10px;
-}
+.login-card { width: 400px; border-radius: 8px; }
 </style>
