@@ -137,6 +137,19 @@ secret: smart-morning-meeting-2026
 
 自己子系统的业务表各人自己建、自己维护，放进各自的 `sql/init.sql`。
 
+**数据库密码：** `application.yml` 里数据库密码必须用环境变量，禁止写明文。
+
+```yaml
+# 正确
+password: ${DB_PASSWORD}
+
+# 错误 —— 别这样写
+password: 1234
+password: ${DB_PASSWORD:1234}
+```
+
+每个人启动前在自己的系统里设 `DB_PASSWORD=你的MySQL密码`。Windows 上在 PowerShell 里跑 `$env:DB_PASSWORD="你的密码"` 或者在系统环境变量里加一条就行。
+
 ### 目录结构
 
 每个子系统的骨架：
