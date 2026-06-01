@@ -21,13 +21,14 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach((to, from, next) => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-        window.location.href = 'http://localhost:5000/'
-    } else {
-        next()
-    }
-})
+// 删除这段代码 ↓
+// router.beforeEach((to, from, next) => {
+//   const token = localStorage.getItem('token')
+//   if (!token) {
+//     window.location.href = 'http://localhost:5000/'
+//   } else {
+//     next()
+//   }
+// })
 
 export default router
