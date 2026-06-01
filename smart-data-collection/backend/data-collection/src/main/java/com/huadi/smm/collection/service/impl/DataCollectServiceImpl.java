@@ -21,7 +21,7 @@ public class DataCollectServiceImpl implements DataCollectService {
     private static final Logger log = LoggerFactory.getLogger(DataCollectServiceImpl.class);
     private static final String TOPIC = "raw-data-topic";
 
-    @Autowired
+    @Autowired(required = false)
     private KafkaTemplate<String, String> kafkaTemplate;
 
     private final AtomicLong totalReceived = new AtomicLong(0);
@@ -31,6 +31,12 @@ public class DataCollectServiceImpl implements DataCollectService {
     @Override
     public void sendToKafka(String source, Map<String, Object> data) {
         totalReceived.incrementAndGet();
+
+        if (kafkaTemplate == null) {
+            log.warn("KafkaTemplate 未配置，数据将仅记录日志。source: {}", source);
+            totalFailed.incrementAndGet();
+            return;
+        }
 
         data.put("source", source);
         data.put("collectTime", LocalDateTime.now().toString());
