@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
 import Layout from '../components/Layout.vue'
 import Dashboard from '../views/Dashboard.vue'
 import ProblemList from '../views/ProblemList.vue'
@@ -7,7 +6,6 @@ import ProgressTrack from '../views/ProgressTrack.vue'
 import Statistics from '../views/Statistics.vue'
 
 const routes = [
-    { path: '/login', name: 'Login', component: Login },
     {
         path: '/',
         component: Layout,
@@ -23,13 +21,13 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-const urlToken = new URLSearchParams(window.location.search).get('token')
-if (urlToken) localStorage.setItem('token', urlToken)
-
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token')
-    if (to.path !== '/login' && !token) next('/login')
-    else next()
+    if (!token) {
+        window.location.href = 'http://localhost:5000/'
+    } else {
+        next()
+    }
 })
 
 export default router
