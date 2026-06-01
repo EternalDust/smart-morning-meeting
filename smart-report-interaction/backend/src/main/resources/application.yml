@@ -5,10 +5,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/smart_meeting?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
-<<<<<<< Updated upstream
     password: ${DB_PASSWORD}
-=======
->>>>>>> Stashed changes
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
