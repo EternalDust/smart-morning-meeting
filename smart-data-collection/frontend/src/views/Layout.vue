@@ -61,12 +61,11 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
-const router = useRouter()
 const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
@@ -79,8 +78,8 @@ const roleLabel = computed(() => {
 
 const handleLogout = async () => {
   await userStore.logout()
-  ElMessage.success('已退出登录')
-  router.push('/login')
+  ElMessage.success('已退出登录，请重新登录')
+  window.location.href = '/'
 }
 </script>
 

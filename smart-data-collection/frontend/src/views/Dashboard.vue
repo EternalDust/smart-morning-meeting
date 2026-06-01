@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getOverview, getSourceStatus, getQualityTrend, getProcessingDelay } from '@/api/dashboard'
 
@@ -101,8 +101,6 @@ const statCards = computed(() => [
 
 const sourceList = ref([])
 const delayData = ref({})
-
-import { computed } from 'vue'
 
 const initTrendChart = async (trendData) => {
   await nextTick()
