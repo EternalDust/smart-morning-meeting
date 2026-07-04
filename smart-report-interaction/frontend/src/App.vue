@@ -4,6 +4,7 @@
       <el-menu-item index="/sign">签到</el-menu-item>
       <el-menu-item index="/report">汇报</el-menu-item>
       <el-menu-item index="/interaction">互动</el-menu-item>
+      <el-menu-item index="/analytics">分析</el-menu-item>
     </el-menu>
     <router-view />
   </div>
