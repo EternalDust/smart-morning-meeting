@@ -62,6 +62,14 @@
           <div><span class="is-num">{{ interStats.votes }}</span>投票</div>
           <div><span class="is-num">{{ interStats.replied }}</span>已回复</div>
         </div>
+
+        <div v-if="timePattern.length" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);font-size:11px">
+          <div style="font-weight:600;margin-bottom:4px">时段准时率</div>
+          <div v-for="t in timePattern" :key="t.period" style="display:flex;justify-content:space-between;padding:2px 0">
+            <span>{{ t.period }}</span>
+            <span :style="{color: t.punctualRate > 60 ? 'var(--s)' : 'var(--d)', fontWeight:'700'}">{{ t.punctualRate }}%</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -71,6 +79,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { sendMessage, replyMessage, getInteractionList, getStats } from '../api/interaction'
+import { getTimePattern } from '../api/analytics'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
@@ -89,6 +98,7 @@ const composeType = ref(1)
 const msgContent = ref('')
 const messages = ref([])
 const nameMap = ref({})
+const timePattern = ref([])
 const interStats = reactive({ questions: 0, feedback: 0, votes: 0, replied: 0 })
 
 const filteredMessages = computed(() =>
@@ -103,6 +113,7 @@ const loadData = async () => {
   messages.value = list.data.messages || []
   nameMap.value = list.data.nameMap || {}
   if (st.data) Object.assign(interStats, st.data)
+  try { const tp = await getTimePattern(); timePattern.value = tp.data || [] } catch {}
 }
 
 const getInterName = (uid) => nameMap.value[uid] || uid

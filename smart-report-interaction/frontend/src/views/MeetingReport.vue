@@ -40,6 +40,15 @@
           <div class="sc-meta">出勤 {{ speechStats.attendRate }}% · 发言 {{ speechStats.speechCount }} · 互动 {{ speechStats.interactionCount }}</div>
         </div>
 
+        <div class="side-card" v-if="weeklyTrend.length">
+          <div class="sc-title">周度趋势</div>
+          <div v-for="w in weeklyTrend.slice(-4)" :key="w.meetingWeek" style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0">
+            <span>{{ w.meetingWeek }}</span>
+            <span>出勤{{ w.avgAttendRate }}%</span>
+            <span>评分{{ w.avgQualityScore }}</span>
+          </div>
+        </div>
+
         <div class="side-card">
           <div class="sc-title">会议摘要</div>
           <div class="summary-text" v-html="summaryHtml"></div>
@@ -52,7 +61,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getSpeechList, getSummary } from '../api/report'
-import { getMeetingAnalytics } from '../api/analytics'
+import { getMeetingAnalytics, getWeeklyTrend } from '../api/analytics'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
 
@@ -64,6 +73,7 @@ const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
 const currentAgenda = ref(2)
 const currentSpeaker = computed(() => userStore.userName || '参会用户')
 const speechStats = ref(null)
+const weeklyTrend = ref([])
 const records = ref([])
 const nameMap = ref({})
 const summaryHtml = ref('<p style="color:#64748B">会议进行中...</p>')
@@ -75,6 +85,7 @@ const loadData = async () => {
   const s = await getSummary(meeting.id)
   if (s.data) summaryHtml.value = s.data.summary || summaryHtml.value
   try { const a = await getMeetingAnalytics(meeting.id); speechStats.value = a.data } catch {}
+  try { const w = await getWeeklyTrend(); weeklyTrend.value = w.data || [] } catch {}
 }
 
 const getSpeakerName = (sid) => nameMap.value[sid] || sid

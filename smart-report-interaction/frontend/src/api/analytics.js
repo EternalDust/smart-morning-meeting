@@ -11,3 +11,9 @@ export const getDepartmentRanking = () =>
 
 export const getMemberProfile = (userId) =>
   request.get(`/analytics/member/${userId}`)
+
+export const getWeeklyTrend = () =>
+  request.get('/analytics/trend/weekly')
+
+export const getTimePattern = () =>
+  request.get('/analytics/trend/time')

@@ -32,4 +32,14 @@ public class AnalyticsController {
     public Result<?> memberProfile(@PathVariable String userId) {
         return Result.ok(analyticsService.getByUserId(userId));
     }
+
+    @GetMapping("/trend/weekly")
+    public Result<?> weeklyTrend() {
+        return Result.ok(analyticsService.getWeeklyTrend());
+    }
+
+    @GetMapping("/trend/time")
+    public Result<?> timePattern() {
+        return Result.ok(analyticsService.getTimePattern());
+    }
 }

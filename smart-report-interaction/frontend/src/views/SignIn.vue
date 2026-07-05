@@ -18,6 +18,7 @@
           <div class="q-num">{{ meetingQuality.qualityScore }}</div>
           <div class="q-label">会议质量评分</div>
           <div class="q-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
+          <div v-if="meetingQuality.isAnomaly === 1" class="anomaly-tag">异常</div>
         </div>
 
         <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned">
