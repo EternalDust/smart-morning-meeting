@@ -3,10 +3,11 @@ package com.huadi.smm.spark
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 
 object MeetingAnalyticsJob {
 
-  val JDBC_URL = "jdbc:mysql://localhost:3306/smart_meeting?useSSL=false&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"
+  val JDBC_URL = "jdbc:mysql://localhost:3307/smart_meeting?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"
   val JDBC_USER = "root"
   val JDBC_PASS = sys.env.getOrElse("DB_PASSWORD", "1234")
   val FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -21,27 +22,22 @@ object MeetingAnalyticsJob {
 
     val now = LocalDateTime.now().format(FMT)
 
-    // Read business tables
     val signinDF = readTable(spark, "sm_meeting_signin")
     val speechDF = readTable(spark, "sm_meeting_speech")
     val interactionDF = readTable(spark, "sm_meeting_interaction")
-    val attendeeDF = readTable(spark, "meeting_attendee")
-    val meetingDF = readTable(spark, "sm_meeting_info")
+    val attendeeDF = readTable(spark, "sm_meeting_attendee")
+    val meetingDF = readTable(spark, "sm_meeting_info").withColumnRenamed("id", "meeting_id")
     val memberDF = readTable(spark, "sm_gm_members")
 
-    // === Meeting Analytics ===
-    val shouldAttendDF = attendeeDF.groupBy("meeting_id").count()
-      .withColumnRenamed("count", "should_attend")
-    val signedDF = signinDF.select("meeting_id", "user_id").distinct()
-      .groupBy("meeting_id").count().withColumnRenamed("count", "actual_attend")
-    val normalDF = signinDF.where("sign_status = 0").groupBy("meeting_id").count()
-      .withColumnRenamed("count", "normal_count")
-    val lateDF = signinDF.where("sign_status = 1").groupBy("meeting_id").count()
-      .withColumnRenamed("count", "late_count")
-    val speechCntDF = speechDF.groupBy("meeting_id").count()
-      .withColumnRenamed("count", "speech_count")
-    val interactionCntDF = interactionDF.groupBy("meeting_id").count()
-      .withColumnRenamed("count", "interaction_count")
+    println(s"signin=${signinDF.count()} speech=${speechDF.count()} interaction=${interactionDF.count()} attendee=${attendeeDF.count()} meeting=${meetingDF.count()} member=${memberDF.count()}")
+
+    // === Meeting Analytics === (all equi-joins on meeting_id)
+    val shouldAttendDF = attendeeDF.groupBy("meeting_id").count().withColumnRenamed("count", "should_attend")
+    val signedDF = signinDF.select("meeting_id", "user_id").distinct().groupBy("meeting_id").count().withColumnRenamed("count", "actual_attend")
+    val normalDF = signinDF.where("sign_status = 0").groupBy("meeting_id").count().withColumnRenamed("count", "normal_count")
+    val lateDF = signinDF.where("sign_status = 1").groupBy("meeting_id").count().withColumnRenamed("count", "late_count")
+    val speechCntDF = speechDF.groupBy("meeting_id").count().withColumnRenamed("count", "speech_count")
+    val interactionCntDF = interactionDF.groupBy("meeting_id").count().withColumnRenamed("count", "interaction_count")
 
     val meetingAnalytics = meetingDF
       .join(shouldAttendDF, Seq("meeting_id"), "left")
@@ -51,109 +47,96 @@ object MeetingAnalyticsJob {
       .join(speechCntDF, Seq("meeting_id"), "left")
       .join(interactionCntDF, Seq("meeting_id"), "left")
       .na.fill(0)
-      .selectExpr(
-        "meeting_id",
-        "meeting_title",
-        "meeting_date",
-        "cast(coalesce(should_attend, 0) as int) as should_attend",
-        "cast(coalesce(actual_attend, 0) as int) as actual_attend",
-        "cast(round(coalesce(actual_attend, 0) / greatest(coalesce(should_attend, 1), 1) * 100, 2) as decimal(5,2)) as attend_rate",
-        "cast(coalesce(normal_count, 0) as int) as normal_count",
-        "cast(coalesce(late_count, 0) as int) as late_count",
-        "cast(coalesce(speech_count, 0) as int) as speech_count",
-        "cast(coalesce(interaction_count, 0) as int) as interaction_count",
-        s"cast(round(coalesce(actual_attend, 0) / greatest(coalesce(should_attend, 1), 1) * 0.4 + coalesce(speech_count, 0) / greatest(coalesce(should_attend, 1), 1) * 100 * 0.3 + coalesce(interaction_count, 0) / greatest(coalesce(should_attend, 1), 1) * 100 * 0.3, 2) as decimal(5,2)) as quality_score",
-        s"'$now' as created_at",
-        s"'$now' as updated_at"
+      .select(
+        col("meeting_id"),
+        col("title").as("meeting_title"),
+        col("start_time").cast("string").as("meeting_date"),
+        col("should_attend").cast("int"),
+        col("actual_attend").cast("int"),
+        round(col("actual_attend") / greatest(col("should_attend"), lit(1)) * 100, 2).as("attend_rate"),
+        col("normal_count").cast("int"),
+        col("late_count").cast("int"),
+        col("speech_count").cast("int"),
+        col("interaction_count").cast("int"),
+        round(col("actual_attend") / greatest(col("should_attend"), lit(1)) * 0.4 +
+              col("speech_count") / greatest(col("should_attend"), lit(1)) * 100 * 0.3 +
+              col("interaction_count") / greatest(col("should_attend"), lit(1)) * 100 * 0.3, 2).as("quality_score"),
+        lit(now).as("created_at"),
+        lit(now).as("updated_at")
       )
-      .select("meeting_id", "meeting_title", "meeting_date", "should_attend", "actual_attend",
-        "attend_rate", "normal_count", "late_count", "speech_count", "interaction_count",
-        "quality_score", "created_at", "updated_at")
-
     writeTable(meetingAnalytics, "sm_meeting_analytics")
+    println("Meeting analytics written")
 
     // === Department Analytics ===
-    val attendeeSigned = attendeeDF
-      .join(signinDF.select("meeting_id", "user_id").distinct(), Seq("meeting_id", "user_id"), "left_outer")
-      .join(memberDF.selectExpr("user_id", "department"), Seq("user_id"), "left")
+    val signedMark = signinDF.select("meeting_id", "user_id").distinct().withColumn("is_signed", lit(1))
+    val deptBase = attendeeDF
+      .join(signedMark, Seq("meeting_id", "user_id"), "left_outer")
+      .join(memberDF.select(col("user_id"), col("dept").as("department")), Seq("user_id"), "left")
+      .na.fill(0, Seq("is_signed"))
 
-    val deptMeetingCnt = attendeeSigned.select("department", "meeting_id").distinct()
+    val deptMeetingCnt = deptBase.select("department", "meeting_id").distinct()
       .groupBy("department").count().withColumnRenamed("count", "meeting_count")
 
-    val deptRates = attendeeSigned.groupBy("department")
-      .agg(
-        org.apache.spark.sql.functions.count("*").as("total"),
-        org.apache.spark.sql.functions.sum(
-          org.apache.spark.sql.functions.when(
-            attendeeSigned("meeting_id").isNotNull.and(signinDF("user_id").isNotNull), 1).otherwise(0)
-        ).as("signed")
-      )
-      .selectExpr("department",
-        "cast(round(signed / greatest(total, 1) * 100, 2) as decimal(5,2)) as avg_attend_rate")
+    val deptRates = deptBase.groupBy("department")
+      .agg(count("*").as("total"), sum(col("is_signed")).as("signed"))
+      .withColumn("avg_attend_rate", round(col("signed") / greatest(col("total"), lit(1)) * 100, 2))
+      .select("department", "avg_attend_rate")
 
-    val speechWithDept = speechDF
-      .join(memberDF, speechDF("speaker_id") === memberDF("user_id"), "left")
-      .groupBy("department").count().withColumnRenamed("count", "total_speech_count")
-
-    val interactionWithDept = interactionDF
-      .join(memberDF, interactionDF("from_user_id") === memberDF("user_id"), "left")
-      .groupBy("department").count().withColumnRenamed("count", "total_interaction_count")
+    val speechDept = speechDF.join(memberDF, speechDF("speaker_id") === memberDF("user_id"), "left")
+      .groupBy("dept").count().withColumnRenamed("count", "total_speech_count").withColumnRenamed("dept", "department")
+    val interDept = interactionDF.join(memberDF, Seq("user_id"), "left")
+      .groupBy("dept").count().withColumnRenamed("count", "total_interaction_count").withColumnRenamed("dept", "department")
 
     val deptAnalytics = deptMeetingCnt
       .join(deptRates, Seq("department"), "left")
-      .join(speechWithDept, Seq("department"), "left")
-      .join(interactionWithDept, Seq("department"), "left")
+      .join(speechDept, Seq("department"), "left")
+      .join(interDept, Seq("department"), "left")
       .na.fill(0)
-      .selectExpr(
-        "department",
-        "cast(coalesce(meeting_count, 0) as int) as meeting_count",
-        "coalesce(avg_attend_rate, 0) as avg_attend_rate",
-        "cast(coalesce(total_speech_count, 0) as int) as total_speech_count",
-        "cast(coalesce(total_interaction_count, 0) as int) as total_interaction_count",
-        s"'$now' as updated_at"
+      .select(
+        col("department"),
+        col("meeting_count").cast("int"),
+        col("avg_attend_rate"),
+        col("total_speech_count").cast("int"),
+        col("total_interaction_count").cast("int"),
+        lit(now).as("updated_at")
       )
-
     writeTable(deptAnalytics, "sm_department_analytics")
+    println("Department analytics written")
 
-    // === Member Analytics ===
-    val memberMeetings = attendeeDF.groupBy("user_id").count()
-      .withColumnRenamed("count", "total_meetings")
-    val memberSigned = signinDF.select("meeting_id", "user_id").distinct()
-      .groupBy("user_id").count().withColumnRenamed("count", "attended_count")
-    val memberNormal = signinDF.where("sign_status = 0").groupBy("user_id").count()
-      .withColumnRenamed("count", "normal_count")
-    val memberLate = signinDF.where("sign_status = 1").groupBy("user_id").count()
-      .withColumnRenamed("count", "late_count")
-    val memberSpeech = speechDF.groupBy("speaker_id").count()
-      .withColumnRenamed("speaker_id", "spk_id").withColumnRenamed("count", "speech_count")
-    val memberInteraction = interactionDF.groupBy("from_user_id").count()
-      .withColumnRenamed("from_user_id", "int_id").withColumnRenamed("count", "interaction_count")
+    // === Member Analytics === (all equi-joins on user_id)
+    val memMeetings = attendeeDF.groupBy("user_id").count().withColumnRenamed("count", "total_meetings")
+    val memSigned = signinDF.select("meeting_id", "user_id").distinct().groupBy("user_id").count().withColumnRenamed("count", "attended_count")
+    val memNormal = signinDF.where("sign_status = 0").groupBy("user_id").count().withColumnRenamed("count", "normal_count")
+    val memLate = signinDF.where("sign_status = 1").groupBy("user_id").count().withColumnRenamed("count", "late_count")
+    val memSpeech = speechDF.groupBy("speaker_id").count().withColumnRenamed("speaker_id", "user_id").withColumnRenamed("count", "speech_count")
+    val memInter = interactionDF.groupBy("user_id").count().withColumnRenamed("count", "interaction_count")
 
     val memberAnalytics = memberDF
-      .selectExpr("user_id", "name as user_name", "department")
-      .join(memberMeetings, Seq("user_id"), "left")
-      .join(memberSigned, Seq("user_id"), "left")
-      .join(memberNormal, Seq("user_id"), "left")
-      .join(memberLate, Seq("user_id"), "left")
-      .join(memberSpeech, memberDF("user_id") === memberSpeech("spk_id"), "left")
-      .join(memberInteraction, memberDF("user_id") === memberInteraction("int_id"), "left")
+      .select(col("user_id"), col("name").as("user_name"), col("dept").as("department"))
+      .join(memMeetings, Seq("user_id"), "left")
+      .join(memSigned, Seq("user_id"), "left")
+      .join(memNormal, Seq("user_id"), "left")
+      .join(memLate, Seq("user_id"), "left")
+      .join(memSpeech, Seq("user_id"), "left")
+      .join(memInter, Seq("user_id"), "left")
       .na.fill(0)
-      .selectExpr(
-        "user_id",
-        "user_name",
-        "department",
-        "cast(coalesce(total_meetings, 0) as int) as total_meetings",
-        "cast(coalesce(attended_count, 0) as int) as attended_count",
-        "cast(round(coalesce(attended_count, 0) / greatest(coalesce(total_meetings, 1), 1) * 100, 2) as decimal(5,2)) as attend_rate",
-        "cast(coalesce(normal_count, 0) as int) as normal_count",
-        "cast(coalesce(late_count, 0) as int) as late_count",
-        "cast(coalesce(speech_count, 0) as int) as speech_count",
-        "cast(coalesce(interaction_count, 0) as int) as interaction_count",
-        s"'$now' as last_updated"
+      .select(
+        col("user_id"),
+        col("user_name"),
+        col("department"),
+        col("total_meetings").cast("int"),
+        col("attended_count").cast("int"),
+        round(col("attended_count") / greatest(col("total_meetings"), lit(1)) * 100, 2).as("attend_rate"),
+        col("normal_count").cast("int"),
+        col("late_count").cast("int"),
+        col("speech_count").cast("int"),
+        col("interaction_count").cast("int"),
+        lit(now).as("last_updated")
       )
-
     writeTable(memberAnalytics, "sm_member_analytics")
+    println("Member analytics written")
 
+    println("All analytics completed successfully")
     spark.stop()
   }
 
@@ -163,6 +146,7 @@ object MeetingAnalyticsJob {
       .option("dbtable", table)
       .option("user", JDBC_USER)
       .option("password", JDBC_PASS)
+      .option("driver", "com.mysql.cj.jdbc.Driver")
       .load()
   }
 
@@ -172,6 +156,8 @@ object MeetingAnalyticsJob {
       .option("dbtable", table)
       .option("user", JDBC_USER)
       .option("password", JDBC_PASS)
+      .option("driver", "com.mysql.cj.jdbc.Driver")
+      .option("truncate", "true")
       .mode("overwrite")
       .save()
   }
