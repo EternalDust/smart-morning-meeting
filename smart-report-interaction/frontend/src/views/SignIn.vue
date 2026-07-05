@@ -8,68 +8,51 @@
 
     <div class="content">
       <div class="left-panel">
-        <h3>签到操作</h3>
-        <div class="current-user">
-          <el-avatar :size="40" style="background:var(--p);font-size:18px;margin-bottom:8px">{{ userName.charAt(0) }}</el-avatar>
+        <div class="user-card">
+          <el-avatar :size="56" style="background:var(--p);font-size:24px">{{ userName.charAt(0) }}</el-avatar>
           <div class="user-name">{{ userName }}</div>
-        </div>
-        <el-button type="primary" size="large" @click="doSignIn" style="width:100%;margin-bottom:8px" :disabled="signed">一键签到</el-button>
-        <el-button size="small" @click="showQR = true" style="width:100%">分享签到二维码</el-button>
-
-        <div class="stat-grid">
-          <div class="stat-card success"><div class="num">{{ stats.normal }}</div><div class="label">已签到</div></div>
-          <div class="stat-card warning"><div class="num">{{ stats.late }}</div><div class="label">迟到</div></div>
-          <div class="stat-card danger"><div class="num">{{ stats.absent }}</div><div class="label">缺席</div></div>
-          <div class="stat-card primary"><div class="num">{{ stats.shouldAttend }}</div><div class="label">应到</div></div>
+          <div class="user-role">{{ isAdmin ? '管理员' : '参会人员' }}</div>
         </div>
 
-        <div v-if="meetingQuality" class="quality-card">
-          <div class="q-title">会议质量评分</div>
-          <div class="q-score">{{ meetingQuality.qualityScore }}</div>
-          <div class="q-meta">出勤率 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
+        <div class="quality-badge" v-if="meetingQuality">
+          <div class="q-num">{{ meetingQuality.qualityScore }}</div>
+          <div class="q-label">会议质量评分</div>
+          <div class="q-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
         </div>
 
-        <div class="btn-row">
-          <el-button @click="refresh">刷新列表</el-button>
-          <el-button>导出签到表</el-button>
-        </div>
+        <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned">
+          {{ alreadySigned ? '已签到' : '一键签到' }}
+        </el-button>
+        <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px" v-if="isAdmin">分享签到二维码</el-button>
       </div>
 
       <div class="right-panel">
-        <div class="panel-header">
-          <h3>签到记录</h3>
-          <span class="count">已签 {{ stats.signed }} / 应到 {{ stats.shouldAttend }}</span>
+        <div class="stat-row">
+          <div class="stat-box"><div class="sn green">{{ stats.normal }}</div><div>准时</div></div>
+          <div class="stat-box"><div class="sn orange">{{ stats.late }}</div><div>迟到</div></div>
+          <div class="stat-box"><div class="sn red">{{ stats.absent }}</div><div>缺席</div></div>
+          <div class="stat-box"><div class="sn blue">{{ stats.shouldAttend }}</div><div>应到</div></div>
         </div>
-        <div class="table-scroll">
-          <el-table :data="records" stripe style="width:100%" max-height="100%">
-            <el-table-column type="index" label="#" width="50" />
-            <el-table-column label="姓名">
-              <template #default="{ row }">
-                <el-avatar :size="24" style="margin-right:8px;vertical-align:middle">{{ getUserName(row.userId).charAt(0) }}</el-avatar>
-                {{ getUserName(row.userId) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="签到方式" width="80">
-              <template #default="{ row }">{{ row.signType === 1 ? '扫码' : '手动' }}</template>
-            </el-table-column>
-            <el-table-column prop="signTime" label="签到时间" width="160" />
-            <el-table-column label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="statusType(row.signStatus)" size="small">
-                  {{ statusText(row.signStatus) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
+
+        <div class="panel-hd">
+          <h3>签到记录</h3>
+          <span class="count">已签 {{ stats.signed }} / {{ stats.shouldAttend }}</span>
+        </div>
+        <div class="record-scroll">
+          <div v-for="r in records" :key="r.id" class="sign-row">
+            <el-avatar :size="28" style="flex-shrink:0">{{ getUserName(r.userId).charAt(0) }}</el-avatar>
+            <span class="sign-name">{{ getUserName(r.userId) }}</span>
+            <el-tag :type="r.signStatus === 0 ? 'success' : 'warning'" size="small">{{ r.signStatus === 0 ? '准时' : '迟到' }}</el-tag>
+            <span class="sign-time">{{ r.signTime }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <el-dialog v-model="showQR" title="扫码签到" width="300px" center>
+    <el-dialog v-model="showQR" title="扫码签到" width="280px" center>
       <div style="text-align:center">
-        <canvas ref="qrCanvas" style="width:220px;height:220px"></canvas>
-        <p style="font-size:12px;color:var(--ts);margin-top:10px">参会人员使用手机扫描二维码即可签到</p>
-        <p style="font-size:11px;color:var(--p);margin-top:4px">{{ meeting.title }}</p>
+        <canvas ref="qrCanvas" style="width:200px;height:200px"></canvas>
+        <p style="font-size:12px;color:var(--ts);margin-top:8px">参会人员扫描二维码签到</p>
       </div>
     </el-dialog>
   </div>
@@ -89,7 +72,8 @@ const userStore = useUserStore()
 const meeting = store.currentMeeting
 
 const userName = computed(() => userStore.userName || '参会用户')
-const signed = ref(false)
+const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
+const alreadySigned = ref(false)
 const records = ref([])
 const nameMap = ref({})
 const stats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
@@ -97,83 +81,55 @@ const meetingQuality = ref(null)
 const showQR = ref(false)
 const qrCanvas = ref(null)
 
-watch(showQR, async (val) => {
-  if (val) {
-    await nextTick()
-    if (qrCanvas.value) {
-      const url = `${window.location.origin}/sign?meetingId=${meeting.id}`
-      await QRCode.toCanvas(qrCanvas.value, url, { width: 220, margin: 1, color: { dark: getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#0891B2' } })
-    }
-  }
-})
-
 const loadData = async () => {
   const res = await getSignList(meeting.id)
-  records.value = res.data.records
+  records.value = res.data.records || []
   nameMap.value = res.data.nameMap || {}
-  stats.normal = res.data.normal
-  stats.late = res.data.late
-  stats.absent = res.data.absent
-  stats.shouldAttend = res.data.shouldAttend
+  stats.normal = res.data.normal; stats.late = res.data.late
+  stats.absent = res.data.absent; stats.shouldAttend = res.data.shouldAttend
   stats.signed = res.data.signed
-  // check if current user already signed
-  const currentUid = userStore.userId
-  signed.value = currentUid ? records.value.some(r => String(r.userId) === String(currentUid)) : false
-  try {
-    const aRes = await getMeetingAnalytics(meeting.id)
-    meetingQuality.value = aRes.data
-  } catch { /* analytics may not exist yet */ }
+  alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
+  try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
 }
 
 const getUserName = (uid) => nameMap.value[uid] || uid
 
 const doSignIn = async () => {
-  try {
-    await signIn(meeting.id, userStore.userId, 2)
-    ElMessage.success('签到成功')
-    await loadData()
-  } catch (e) {
-    // error already shown by request interceptor
-  }
+  try { await signIn(meeting.id, userStore.userId, 2); ElMessage.success('签到成功'); await loadData() } catch {}
 }
 
-const refresh = () => loadData()
-
-const statusType = (s) => s === 0 ? 'success' : s === 1 ? 'warning' : 'danger'
-const statusText = (s) => s === 0 ? '正常' : s === 1 ? '迟到' : '缺席'
+watch(showQR, async (v) => {
+  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meeting.id}`, { width: 200, margin: 1 }) }
+})
 
 onMounted(loadData)
 </script>
 
 <style scoped>
-.page-layout { display:flex; flex-direction:column; padding:16px 16px 8px; height:100% }
-.top-bar { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-shrink:0 }
-.top-bar h2 { font-size:16px; margin:0 }
+.page-layout { display:flex; flex-direction:column; padding:16px; height:100%; overflow:hidden }
+.top-bar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-shrink:0 }
+.top-bar h2 { font-size:18px; margin:0 }
 .time { color:var(--ts); font-size:13px; margin-left:auto }
-.content { flex:1; display:flex; gap:14px; min-height:0; overflow:hidden }
-.left-panel { width:320px; flex-shrink:0; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:16px; display:flex; flex-direction:column; justify-content:center }
-.left-panel h3 { font-size:14px; margin-bottom:12px }
-.field-label { font-size:12px; color:var(--ts); display:block; margin-bottom:4px }
-.input-row { display:flex; gap:8px; margin-bottom:14px }
-.stat-grid { display:flex; gap:8px; margin-bottom:20px }
-.stat-card { flex:1; text-align:center; padding:10px 6px; border-radius:6px }
-.stat-card.success { background:var(--sb) }  .stat-card.success .num { color:var(--s) }
-.stat-card.warning { background:var(--wb) }  .stat-card.warning .num { color:var(--w) }
-.stat-card.danger  { background:var(--db) }  .stat-card.danger .num  { color:var(--d) }
-.stat-card.primary { background:var(--pb) }  .stat-card.primary .num { color:var(--p) }
-.stat-card .num { font-size:24px; font-weight:700 }
-.stat-card .label { font-size:11px; color:var(--ts); margin-top:2px }
-.btn-row { display:flex; gap:8px }
-.right-panel { flex:1; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:16px; display:flex; flex-direction:column; overflow:hidden }
-.panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0 }
-.panel-header h3 { font-size:14px }
+.content { flex:1; display:flex; gap:16px; min-height:0; overflow:hidden }
+.left-panel { width:240px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:16px }
+.user-card { text-align:center }
+.user-name { font-size:18px; font-weight:700; margin-top:10px }
+.user-role { font-size:12px; color:var(--ts); margin-top:2px }
+.quality-badge { text-align:center; padding:12px; background:var(--pb); border-radius:12px; width:100% }
+.q-num { font-size:32px; font-weight:700; color:var(--p) }
+.q-label { font-size:12px; color:var(--ts); margin-top:2px }
+.q-meta { font-size:11px; color:var(--ts); margin-top:6px }
+.right-panel { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden }
+.stat-row { display:flex; gap:8px; margin-bottom:16px; flex-shrink:0 }
+.stat-box { flex:1; text-align:center; padding:12px 8px; background:#fff; border:1px solid var(--bd); border-radius:8px; font-size:12px; color:var(--ts) }
+.sn { font-size:24px; font-weight:700 }
+.sn.green { color:var(--s) } .sn.orange { color:var(--w) } .sn.red { color:var(--d) } .sn.blue { color:var(--p) }
+.panel-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0 }
+.panel-hd h3 { font-size:14px }
 .count { font-size:12px; color:var(--ts) }
-.table-scroll { flex:1; overflow-y:auto }
-.current-user { text-align:center; padding:8px 0 12px }
-.user-name { font-size:15px; font-weight:600; color:#1E293B }
-.user-id { font-size:12px; color:var(--ts); margin-top:2px }
-.quality-card { margin-top:12px; padding:12px; background:var(--pb); border-radius:8px; text-align:center }
-.q-title { font-size:12px; color:var(--ts); margin-bottom:4px }
-.q-score { font-size:28px; font-weight:700; color:var(--p) }
-.q-meta { font-size:11px; color:var(--ts); margin-top:4px }
+.record-scroll { flex:1; overflow-y:auto; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:8px 12px }
+.sign-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F1F5F9 }
+.sign-row:last-child { border-bottom:none }
+.sign-name { flex:1; font-size:13px; font-weight:500 }
+.sign-time { font-size:11px; color:var(--ts) }
 </style>

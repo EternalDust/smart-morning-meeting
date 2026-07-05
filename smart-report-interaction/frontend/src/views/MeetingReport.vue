@@ -7,64 +7,43 @@
     </div>
 
     <div class="content">
-      <div class="left-panel">
-        <div class="section-header">
-          <h3>议程与汇报</h3>
-          <span class="step">环节 {{ currentAgenda }} / 4</span>
+      <div class="main-area">
+        <div class="agenda-steps">
+          <div v-for="(a,i) in agendas" :key="i" :class="['step', { done: i+1 < currentAgenda, active: i+1 === currentAgenda }]" @click="currentAgenda = i+1">
+            <span class="step-num">{{ i+1 < currentAgenda ? '✓' : i+1 }}</span> {{ a }}
+          </div>
         </div>
 
-        <div class="agenda-tabs">
-          <div v-for="(a,i) in agendas" :key="i"
-            :class="['tab', { active: currentAgenda === i+1 }]"
-            @click="currentAgenda = i+1">{{ i+1 }}. {{ a }}</div>
+        <div class="voice-zone">
+          <div class="vz-icon">🎙</div>
+          <div class="vz-title">语音实时转写</div>
+          <div class="vz-speaker">当前主讲人：{{ currentSpeaker }}</div>
+          <div class="vz-hint">语音接入后自动转写为文字，AI 提取关键要点生成会议摘要</div>
         </div>
 
-        <div class="speaker-info">
-          当前汇报人：
-          <el-avatar :size="28" style="background:var(--p)">{{ currentSpeaker.charAt(0) }}</el-avatar>
-          <strong>{{ currentSpeaker }}</strong>
-        </div>
-
-        <div class="voice-placeholder">
-          <div class="vp-icon">🎙</div>
-          <div class="vp-title">语音接入 · 大模型摘要</div>
-          <div class="vp-desc">下一阶段：语音实时转写 + AI 自动生成会议摘要</div>
-        </div>
-
-        <div v-if="speechStats" class="analytics-strip">
-          <span class="as-item">发言 {{ speechStats.speechCount }}</span>
-          <span class="as-divider">|</span>
-          <span class="as-item">互动 {{ speechStats.interactionCount }}</span>
-          <span class="as-divider">|</span>
-          <span class="as-item">出勤率 {{ speechStats.attendRate }}%</span>
-          <span class="as-divider">|</span>
-          <span class="as-item as-highlight">评分 {{ speechStats.qualityScore }}</span>
-        </div>
-
-        <div class="record-list">
-          <div class="section-title">汇报记录</div>
-          <div v-for="r in records" :key="r.id" class="record-item">
-            <el-avatar :size="24">{{ getSpeakerName(r.speakerId).charAt(0) }}</el-avatar>
-            <div class="record-body">
-              <div class="record-meta">
-                <strong>{{ getSpeakerName(r.speakerId) }}</strong>
-                <span>{{ r.speechTime }}</span>
-                <el-tag v-if="r.id === editingId" type="success" size="small">当前发言</el-tag>
-              </div>
-              <p>{{ r.content || '—' }}</p>
-              <p class="key-points" v-if="r.keyPoints">要点：{{ r.keyPoints }}</p>
+        <div class="section-label">发言记录</div>
+        <div class="speech-list">
+          <div v-for="r in records" :key="r.id" class="speech-row">
+            <el-avatar :size="24" style="flex-shrink:0">{{ getSpeakerName(r.speakerId).charAt(0) }}</el-avatar>
+            <div class="speech-body">
+              <div class="speech-meta"><strong>{{ getSpeakerName(r.speakerId) }}</strong> · {{ r.speechTime }}</div>
+              <p>{{ r.content }}</p>
             </div>
-            <el-button link type="primary" size="small" @click="editRecord(r)">编辑</el-button>
           </div>
         </div>
       </div>
 
-      <div class="right-panel">
-        <div class="panel-header">
-          <h3>会议摘要</h3>
-          <el-button size="small" @click="exportDoc">导出文档</el-button>
+      <div class="side-panel">
+        <div class="side-card" v-if="speechStats">
+          <div class="sc-title">会议质量</div>
+          <div class="sc-score">{{ speechStats.qualityScore }}</div>
+          <div class="sc-meta">出勤 {{ speechStats.attendRate }}% · 发言 {{ speechStats.speechCount }} · 互动 {{ speechStats.interactionCount }}</div>
         </div>
-        <div class="summary-body" v-html="summaryHtml"></div>
+
+        <div class="side-card">
+          <div class="sc-title">会议摘要</div>
+          <div class="summary-text" v-html="summaryHtml"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -87,18 +66,15 @@ const currentSpeaker = computed(() => userStore.userName || '参会用户')
 const speechStats = ref(null)
 const records = ref([])
 const nameMap = ref({})
-const summaryHtml = ref('<p style="color:#475569">会议进行中...</p>')
+const summaryHtml = ref('<p style="color:#64748B">会议进行中...</p>')
 
 const loadData = async () => {
   const res = await getSpeechList(meeting.id)
   records.value = res.data.records || []
   nameMap.value = res.data.nameMap || {}
   const s = await getSummary(meeting.id)
-  if (s.data) summaryHtml.value = s.data.summary || ''
-  try {
-    const aRes = await getMeetingAnalytics(meeting.id)
-    speechStats.value = aRes.data
-  } catch { /* analytics may not exist yet */ }
+  if (s.data) summaryHtml.value = s.data.summary || summaryHtml.value
+  try { const a = await getMeetingAnalytics(meeting.id); speechStats.value = a.data } catch {}
 }
 
 const getSpeakerName = (sid) => nameMap.value[sid] || sid
@@ -107,42 +83,33 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.page-layout { display:flex; flex-direction:column; padding:16px 16px 8px; height:100% }
-.top-bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-shrink:0 }
-.top-bar h2 { font-size:16px; margin:0 }
+.page-layout { display:flex; flex-direction:column; padding:16px; height:100%; overflow:hidden }
+.top-bar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-shrink:0 }
+.top-bar h2 { font-size:18px; margin:0 }
 .time { color:var(--ts); font-size:13px; margin-left:auto }
-.content { flex:1; display:flex; gap:14px; min-height:0; overflow:hidden }
-.left-panel { flex:2; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:16px; display:flex; flex-direction:column; overflow:hidden }
-.section-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-shrink:0 }
-.section-header h3 { font-size:14px }
-.step { font-size:12px; color:var(--ts) }
-.agenda-tabs { display:flex; margin-bottom:10px; flex-shrink:0 }
-.agenda-tabs .tab { padding:5px 14px; font-size:12px; border:1px solid var(--bd); border-left:0; background:var(--pb); color:var(--p); cursor:pointer }
-.agenda-tabs .tab:first-child { border-left:1px solid var(--bd); border-radius:6px 0 0 6px }
-.agenda-tabs .tab:last-child { border-radius:0 6px 6px 0 }
-.agenda-tabs .tab.active { background:var(--p); color:#fff; border-color:var(--p) }
-.speaker-info { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; flex-shrink:0 }
-.field-label { font-size:12px; color:var(--ts); display:block; margin-bottom:4px }
-.action-row { display:flex; justify-content:flex-end; gap:8px; margin:8px 0; flex-shrink:0 }
-.record-list { flex:1; overflow-y:auto; min-height:0 }
-.section-title { font-size:12px; color:var(--ts); font-weight:500; margin-bottom:8px }
-.record-item { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--bd) }
-.record-body { flex:1; min-width:0 }
-.record-meta { display:flex; align-items:center; gap:8px; margin-bottom:2px }
-.record-meta strong { font-size:13px }
-.record-meta span { font-size:11px; color:var(--ts) }
-.record-body p { font-size:13px; color:var(--t); line-height:1.6 }
-.key-points { font-size:11px; color:var(--ts); margin-top:3px }
-.right-panel { flex:1; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:16px; display:flex; flex-direction:column; overflow:hidden }
-.panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0 }
-.panel-header h3 { font-size:14px }
-.summary-body { flex:1; overflow-y:auto; border:1px solid var(--bd); border-radius:6px; padding:12px; font-size:13px; line-height:1.8 }
-.analytics-strip { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--pb); border-radius:6px; margin-bottom:10px; font-size:12px; flex-shrink:0 }
-.as-item { color:var(--ts) }
-.as-divider { color:var(--bd) }
-.as-highlight { color:var(--p); font-weight:700 }
-.voice-placeholder { text-align:center; padding:24px; margin:10px 0; border:2px dashed var(--bd); border-radius:var(--radius); background:var(--pb) }
-.vp-icon { font-size:32px; margin-bottom:8px }
-.vp-title { font-size:14px; font-weight:600; color:var(--p) }
-.vp-desc { font-size:12px; color:var(--ts); margin-top:4px }
+.content { flex:1; display:flex; gap:16px; min-height:0; overflow:hidden }
+.main-area { flex:2; display:flex; flex-direction:column; min-height:0; overflow:hidden }
+.agenda-steps { display:flex; gap:8px; margin-bottom:14px; flex-shrink:0 }
+.step { padding:8px 16px; border-radius:8px; background:#F1F5F9; color:var(--ts); font-size:13px; cursor:pointer; text-align:center; min-width:80px }
+.step.active { background:var(--p); color:#fff }
+.step.done { background:var(--sb); color:var(--s) }
+.step-num { font-weight:700; margin-right:4px }
+.voice-zone { border:2px dashed var(--bd); border-radius:12px; padding:32px; text-align:center; margin-bottom:14px; flex-shrink:0; background:var(--pb) }
+.vz-icon { font-size:36px; margin-bottom:8px }
+.vz-title { font-size:16px; font-weight:700; color:var(--p) }
+.vz-speaker { font-size:13px; color:var(--ts); margin-top:6px }
+.vz-hint { font-size:12px; color:var(--ts); margin-top:8px }
+.section-label { font-size:13px; font-weight:600; margin-bottom:8px; flex-shrink:0 }
+.speech-list { flex:1; overflow-y:auto; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:8px 12px }
+.speech-row { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #F1F5F9 }
+.speech-row:last-child { border-bottom:none }
+.speech-body { flex:1; min-width:0 }
+.speech-meta { font-size:12px; color:var(--ts); margin-bottom:2px }
+.speech-body p { font-size:13px; color:#1E293B; margin:0; line-height:1.5 }
+.side-panel { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:12px }
+.side-card { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:14px; text-align:center }
+.sc-title { font-size:12px; color:var(--ts); margin-bottom:6px }
+.sc-score { font-size:36px; font-weight:700; color:var(--p) }
+.sc-meta { font-size:11px; color:var(--ts); margin-top:6px }
+.summary-text { text-align:left; font-size:13px; line-height:1.7; color:#475569 }
 </style>
