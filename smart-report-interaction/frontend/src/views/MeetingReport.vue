@@ -22,9 +22,8 @@
         <template v-if="userStore.isLoggedIn">
           <div class="speaker-info">
             当前汇报人：
-            <el-avatar :size="28" style="background:#2563EB">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <el-avatar :size="28" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
             <strong>{{ userStore.userName }}</strong>
-            <span v-if="speakerDept">· {{ speakerDept }}</span>
           </div>
         </template>
         <template v-else>
@@ -94,7 +93,6 @@ const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
 const currentAgenda = ref(2)
 const speakerId = ref(userStore.userId || '')
 const content = ref('')
-const speakerDept = ref('')
 const speechStats = ref(null)
 const editingId = ref(null)
 const records = ref([])

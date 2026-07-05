@@ -97,7 +97,7 @@ function renderDeptChart() {
     yAxis: { type: 'value', name: '出勤率(%)', max: 100 },
     series: [{
       name: '平均出勤率', type: 'bar', data: list.map(d => d.avgAttendRate),
-      itemStyle: { color: '#2563EB' }
+      itemStyle: { color: getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#0891B2' }
     }]
   })
   window.addEventListener('resize', () => chart.resize())

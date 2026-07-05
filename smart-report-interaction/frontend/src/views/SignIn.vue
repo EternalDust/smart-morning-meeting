@@ -11,7 +11,7 @@
         <h3>签到操作</h3>
         <template v-if="userStore.isLoggedIn">
           <div class="current-user">
-            <el-avatar :size="40" style="background:#2563EB;font-size:18px;margin-bottom:8px">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <el-avatar :size="40" style="background:var(--p);font-size:18px;margin-bottom:8px">{{ userStore.userName.charAt(0) }}</el-avatar>
             <div class="user-name">{{ userStore.userName }}</div>
             <div class="user-id">工号 {{ userStore.userId }}</div>
           </div>
@@ -112,7 +112,7 @@ watch(showQR, async (val) => {
     await nextTick()
     if (qrCanvas.value) {
       const url = `${window.location.origin}/sign?meetingId=${meeting.id}`
-      await QRCode.toCanvas(qrCanvas.value, url, { width: 220, margin: 1, color: { dark: '#2563EB' } })
+      await QRCode.toCanvas(qrCanvas.value, url, { width: 220, margin: 1, color: { dark: getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#0891B2' } })
     }
   }
 })
