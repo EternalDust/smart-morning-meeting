@@ -15,10 +15,14 @@
         </div>
 
         <div class="voice-zone">
-          <div class="vz-icon">🎙</div>
-          <div class="vz-title">语音实时转写</div>
-          <div class="vz-speaker">当前主讲人：{{ currentSpeaker }}</div>
-          <div class="vz-hint">语音接入后自动转写为文字，AI 提取关键要点生成会议摘要</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px">🎙</span>
+            <div>
+              <div class="vz-title">语音实时转写</div>
+              <div style="font-size:12px;color:var(--ts)">当前主讲人：{{ currentSpeaker }}</div>
+            </div>
+            <span style="margin-left:auto;font-size:11px;color:var(--ts)">语音接入后自动转写</span>
+          </div>
         </div>
 
         <div class="section-label">发言记录</div>
@@ -105,11 +109,8 @@ onMounted(loadData)
 .step.active { background:var(--p); color:#fff }
 .step.done { background:var(--sb); color:var(--s) }
 .step-num { font-weight:700; margin-right:4px }
-.voice-zone { border:2px dashed var(--bd); border-radius:12px; padding:32px; text-align:center; margin-bottom:14px; flex-shrink:0; background:var(--pb) }
-.vz-icon { font-size:36px; margin-bottom:8px }
-.vz-title { font-size:16px; font-weight:700; color:var(--p) }
-.vz-speaker { font-size:13px; color:var(--ts); margin-top:6px }
-.vz-hint { font-size:12px; color:var(--ts); margin-top:8px }
+.voice-zone { border:2px dashed var(--bd); border-radius:12px; padding:12px 16px; margin-bottom:14px; flex-shrink:0; background:var(--pb) }
+.vz-title { font-size:15px; font-weight:700; color:var(--p) }
 .section-label { font-size:13px; font-weight:600; margin-bottom:8px; flex-shrink:0 }
 .speech-list { flex:1; overflow-y:auto; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:8px 12px }
 .speech-row { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #F1F5F9 }
@@ -118,9 +119,10 @@ onMounted(loadData)
 .speech-meta { font-size:12px; color:var(--ts); margin-bottom:2px }
 .speech-body p { font-size:13px; color:#1E293B; margin:0; line-height:1.5 }
 .side-panel { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:12px }
-.side-card { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:14px; text-align:center }
+.side-card { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:14px }
+.side-card:first-child { text-align:center }
 .sc-title { font-size:12px; color:var(--ts); margin-bottom:6px }
 .sc-score { font-size:36px; font-weight:700; color:var(--p) }
 .sc-meta { font-size:11px; color:var(--ts); margin-top:6px }
-.summary-text { text-align:left; font-size:13px; line-height:1.7; color:#475569 }
+.summary-text { text-align:left; font-size:13px; line-height:1.7; color:#475569; min-height:60px; max-height:200px; overflow-y:auto }
 </style>

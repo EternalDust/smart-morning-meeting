@@ -14,14 +14,14 @@
           <div class="user-role">{{ isAdmin ? '管理员' : '参会人员' }}</div>
         </div>
 
-        <div class="quality-badge" v-if="meetingQuality">
+        <div class="quality-badge" v-if="isAdmin && meetingQuality">
           <div class="q-num">{{ meetingQuality.qualityScore }}</div>
           <div class="q-label">会议质量评分</div>
           <div class="q-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
           <div v-if="meetingQuality.isAnomaly === 1" class="anomaly-tag">异常</div>
         </div>
 
-        <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned">
+        <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned" :loading="signing">
           {{ alreadySigned ? '已签到' : '一键签到' }}
         </el-button>
         <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px" v-if="isAdmin">分享签到二维码</el-button>
@@ -72,8 +72,16 @@ const store = useMeetingStore()
 const userStore = useUserStore()
 const meeting = store.currentMeeting
 
-const userName = computed(() => userStore.userName || '参会用户')
+const userName = computed(() => {
+  if (userStore.userName) return userStore.userName
+  const token = localStorage.getItem('token')
+  if (token) {
+    try { const p = JSON.parse(atob(token.split('.')[1])); return p.sub || '参会用户' } catch {}
+  }
+  return '参会用户'
+})
 const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
+const signing = ref(false)
 const alreadySigned = ref(false)
 const records = ref([])
 const nameMap = ref({})
@@ -83,20 +91,25 @@ const showQR = ref(false)
 const qrCanvas = ref(null)
 
 const loadData = async () => {
-  const res = await getSignList(meeting.id)
-  records.value = res.data.records || []
-  nameMap.value = res.data.nameMap || {}
-  stats.normal = res.data.normal; stats.late = res.data.late
-  stats.absent = res.data.absent; stats.shouldAttend = res.data.shouldAttend
-  stats.signed = res.data.signed
-  alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
+  try {
+    const res = await getSignList(meeting.id)
+    records.value = res.data.records || []
+    nameMap.value = res.data.nameMap || {}
+    stats.normal = res.data.normal; stats.late = res.data.late
+    stats.absent = res.data.absent; stats.shouldAttend = res.data.shouldAttend
+    stats.signed = res.data.signed
+    alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
+  } catch {}
   try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
 }
 
 const getUserName = (uid) => nameMap.value[uid] || uid
 
 const doSignIn = async () => {
+  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
+  signing.value = true
   try { await signIn(meeting.id, userStore.userId, 2); ElMessage.success('签到成功'); await loadData() } catch {}
+  signing.value = false
 }
 
 watch(showQR, async (v) => {
@@ -120,6 +133,7 @@ onMounted(loadData)
 .q-num { font-size:32px; font-weight:700; color:var(--p) }
 .q-label { font-size:12px; color:var(--ts); margin-top:2px }
 .q-meta { font-size:11px; color:var(--ts); margin-top:6px }
+.anomaly-tag { display:inline-block;padding:2px 10px;background:var(--db);color:var(--d);border-radius:4px;font-size:11px;font-weight:700;margin-top:6px }
 .right-panel { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden }
 .stat-row { display:flex; gap:8px; margin-bottom:16px; flex-shrink:0 }
 .stat-box { flex:1; text-align:center; padding:12px 8px; background:#fff; border:1px solid var(--bd); border-radius:8px; font-size:12px; color:var(--ts) }
