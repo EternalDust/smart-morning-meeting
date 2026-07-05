@@ -19,23 +19,16 @@
             @click="currentAgenda = i+1">{{ i+1 }}. {{ a }}</div>
         </div>
 
-        <template v-if="userStore.isLoggedIn">
-          <div class="speaker-info">
-            当前汇报人：
-            <el-avatar :size="28" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
-            <strong>{{ userStore.userName }}</strong>
-          </div>
-        </template>
-        <template v-else>
-          <label class="field-label">汇报人工号</label>
-          <el-input v-model="speakerId" placeholder="输入汇报人工号" style="margin-bottom:8px" />
-        </template>
+        <div class="speaker-info">
+          当前汇报人：
+          <el-avatar :size="28" style="background:var(--p)">{{ currentSpeaker.charAt(0) }}</el-avatar>
+          <strong>{{ currentSpeaker }}</strong>
+        </div>
 
-        <label class="field-label">发言要点</label>
-        <el-input v-model="content" type="textarea" :rows="4" placeholder="录入发言人要点或会议摘要..." />
-        <div class="action-row">
-          <el-button @click="saveDraft">暂存草稿</el-button>
-          <el-button type="primary" @click="saveSpeech">保存发言</el-button>
+        <div class="voice-placeholder">
+          <div class="vp-icon">🎙</div>
+          <div class="vp-title">语音接入 · 大模型摘要</div>
+          <div class="vp-desc">下一阶段：语音实时转写 + AI 自动生成会议摘要</div>
         </div>
 
         <div v-if="speechStats" class="analytics-strip">
@@ -78,9 +71,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { saveSpeech as apiSave, getSpeechList, getSummary } from '../api/report'
+import { ref, computed, onMounted } from 'vue'
+import { getSpeechList, getSummary } from '../api/report'
 import { getMeetingAnalytics } from '../api/analytics'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
@@ -91,10 +83,8 @@ const meeting = store.currentMeeting
 
 const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
 const currentAgenda = ref(2)
-const speakerId = ref(userStore.userId || '')
-const content = ref('')
+const currentSpeaker = computed(() => userStore.userName || '参会用户')
 const speechStats = ref(null)
-const editingId = ref(null)
 const records = ref([])
 const nameMap = ref({})
 const summaryHtml = ref('<p style="color:#475569">会议进行中...</p>')
@@ -112,31 +102,6 @@ const loadData = async () => {
 }
 
 const getSpeakerName = (sid) => nameMap.value[sid] || sid
-
-const saveDraft = async () => {
-  ElMessage.info('草稿已暂存')
-}
-
-const saveSpeech = async () => {
-  if (!content.value) { ElMessage.warning('请输入发言内容'); return }
-  if (!speakerId.value) { ElMessage.warning('请输入汇报人工号'); return }
-  try {
-    await apiSave({ meetingId: meeting.id, speakerId: speakerId.value, content: content.value })
-    ElMessage.success('发言已保存')
-    content.value = ''
-    speakerId.value = ''
-    await loadData()
-  } catch (e) {
-    // error already shown by interceptor
-  }
-}
-
-const editRecord = (r) => {
-  content.value = r.content
-  editingId.value = r.id
-}
-
-const exportDoc = () => ElMessage.success('文档导出中...')
 
 onMounted(loadData)
 </script>
@@ -176,4 +141,8 @@ onMounted(loadData)
 .as-item { color:var(--ts) }
 .as-divider { color:var(--bd) }
 .as-highlight { color:var(--p); font-weight:700 }
+.voice-placeholder { text-align:center; padding:24px; margin:10px 0; border:2px dashed var(--bd); border-radius:var(--radius); background:var(--pb) }
+.vp-icon { font-size:32px; margin-bottom:8px }
+.vp-title { font-size:14px; font-weight:600; color:var(--p) }
+.vp-desc { font-size:12px; color:var(--ts); margin-top:4px }
 </style>

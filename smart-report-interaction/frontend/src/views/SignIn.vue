@@ -9,23 +9,12 @@
     <div class="content">
       <div class="left-panel">
         <h3>签到操作</h3>
-        <template v-if="userStore.isLoggedIn">
-          <div class="current-user">
-            <el-avatar :size="40" style="background:var(--p);font-size:18px;margin-bottom:8px">{{ userStore.userName.charAt(0) }}</el-avatar>
-            <div class="user-name">{{ userStore.userName }}</div>
-            <div class="user-id">工号 {{ userStore.userId }}</div>
-          </div>
-          <el-button type="primary" size="large" @click="doSignIn" style="width:100%;margin-bottom:8px" :disabled="stats.signed === stats.shouldAttend">一键签到</el-button>
-          <el-button size="small" @click="showQR = true" style="width:100%">分享签到二维码</el-button>
-        </template>
-        <template v-else>
-          <label class="field-label">工号/扫码</label>
-          <div class="input-row">
-            <el-input v-model="userId" placeholder="输入工号或扫描二维码签到" size="large" />
-            <el-button type="primary" size="large" @click="doSignIn">签到</el-button>
-          </div>
-          <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px">出示签到二维码</el-button>
-        </template>
+        <div class="current-user">
+          <el-avatar :size="40" style="background:var(--p);font-size:18px;margin-bottom:8px">{{ userName.charAt(0) }}</el-avatar>
+          <div class="user-name">{{ userName }}</div>
+        </div>
+        <el-button type="primary" size="large" @click="doSignIn" style="width:100%;margin-bottom:8px" :disabled="signed">一键签到</el-button>
+        <el-button size="small" @click="showQR = true" style="width:100%">分享签到二维码</el-button>
 
         <div class="stat-grid">
           <div class="stat-card success"><div class="num">{{ stats.normal }}</div><div class="label">已签到</div></div>
@@ -87,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
@@ -99,7 +88,8 @@ const store = useMeetingStore()
 const userStore = useUserStore()
 const meeting = store.currentMeeting
 
-const userId = ref(userStore.userId || '')
+const userName = computed(() => userStore.userName || '参会用户')
+const signed = ref(false)
 const records = ref([])
 const nameMap = ref({})
 const stats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
@@ -126,6 +116,9 @@ const loadData = async () => {
   stats.absent = res.data.absent
   stats.shouldAttend = res.data.shouldAttend
   stats.signed = res.data.signed
+  // check if current user already signed
+  const currentUid = userStore.userId
+  signed.value = currentUid ? records.value.some(r => String(r.userId) === String(currentUid)) : false
   try {
     const aRes = await getMeetingAnalytics(meeting.id)
     meetingQuality.value = aRes.data
@@ -135,10 +128,8 @@ const loadData = async () => {
 const getUserName = (uid) => nameMap.value[uid] || uid
 
 const doSignIn = async () => {
-  const id = userId.value || userStore.userId
-  if (!id) { ElMessage.warning('请输入工号'); return }
   try {
-    await signIn(meeting.id, id, 2)
+    await signIn(meeting.id, userStore.userId, 2)
     ElMessage.success('签到成功')
     await loadData()
   } catch (e) {
