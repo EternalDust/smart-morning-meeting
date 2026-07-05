@@ -1,13 +1,17 @@
 import { ApiService, SignListData } from '../common/api/ApiService'
 import { StatCard } from '../common/components/StatCard'
 import { EmptyState } from '../common/components/EmptyState'
-import { SignRecord, SignStats } from '../model/SignRecord'
+import { SignRecord } from '../model/SignRecord'
 import { TokenManager } from '../common/utils/TokenManager'
 import webSocket from '@ohos.net.webSocket'
 
 @Component
 export struct SignInPageContent {
-  @State stats: SignStats = { shouldAttend: 0, normal: 0, late: 0, absent: 0, signed: 0 }
+  @State shouldAttend: number = 0
+  @State normal: number = 0
+  @State late: number = 0
+  @State absent: number = 0
+  @State signed: number = 0
   @State records: SignRecord[] = []
   @State isLoading: boolean = false
   @State isSigning: boolean = false
@@ -39,7 +43,9 @@ export struct SignInPageContent {
       const res = await ApiService.getSignList(1)
       const data = res.data as SignListData
       this.records = data.records
-      this.stats = data.stats
+      this.shouldAttend = data.shouldAttend
+      this.normal = data.normal; this.late = data.late
+      this.absent = data.absent; this.signed = data.signed
       this.nameMap = data.nameMap
       if (this.userId) {
         this.alreadySigned = this.records.some(r => String(r.userId) === this.userId)
@@ -77,10 +83,10 @@ export struct SignInPageContent {
   build() {
     Column() {
       Row() {
-        StatCard({ label: '应到', value: this.stats.shouldAttend, color: '#2563EB' })
-        StatCard({ label: '准时', value: this.stats.normal, color: '#059669' })
-        StatCard({ label: '迟到', value: this.stats.late, color: '#D97706' })
-        StatCard({ label: '缺勤', value: this.stats.absent, color: '#DC2626' })
+        StatCard({ label: '应到', value: this.shouldAttend, color: '#2563EB' })
+        StatCard({ label: '准时', value: this.normal, color: '#059669' })
+        StatCard({ label: '迟到', value: this.late, color: '#D97706' })
+        StatCard({ label: '缺勤', value: this.absent, color: '#DC2626' })
       }.width('100%').padding(12).justifyContent(FlexAlign.SpaceAround)
 
       Column() {

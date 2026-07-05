@@ -12,8 +12,12 @@ export interface LoginData {
 
 export interface SignListData {
   records: SignRecord[]
-  stats: SignStats
   nameMap: Record<number, string>
+  shouldAttend: number
+  normal: number
+  late: number
+  absent: number
+  signed: number
 }
 
 export interface SpeechListData {
