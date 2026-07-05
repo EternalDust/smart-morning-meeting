@@ -1,0 +1,8 @@
+{
+  "string": [
+    { "name": "app_name", "value": "智慧晨会" },
+    { "name": "module_desc", "value": "晨会智能汇报与实时交互" },
+    { "name": "EntryAbility_desc", "value": "智慧晨会移动端" },
+    { "name": "EntryAbility_label", "value": "智慧晨会" }
+  ]
+}
