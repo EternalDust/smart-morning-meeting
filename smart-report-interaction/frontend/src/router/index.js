@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
-  { path: '/', redirect: '/sign' },
-  { path: '/sign', name: 'SignIn', component: () => import('../views/SignIn.vue') },
-  { path: '/report', name: 'Report', component: () => import('../views/MeetingReport.vue') },
-  { path: '/interaction', name: 'Interaction', component: () => import('../views/Interaction.vue') },
+  { path: '/', redirect: '/meeting/1' },
+  { path: '/meeting/:id', name: 'MeetingRoom', component: () => import('../views/MeetingRoom.vue') },
+  { path: '/sign', redirect: '/meeting/1' },
+  { path: '/report', redirect: '/meeting/1' },
+  { path: '/interaction', redirect: '/meeting/1' },
   { path: '/analytics', name: 'Analytics', component: () => import('../views/Analytics.vue') }
 ]
 
