@@ -47,8 +47,15 @@
               <el-button :type="composeType===3?'primary':''" @click="composeType=3">发起投票</el-button>
             </el-button-group>
           </div>
-          <label class="field-label">你的工号</label>
-          <el-input v-model="userId" placeholder="输入你的工号" style="margin-bottom:6px" />
+          <template v-if="userStore.isLoggedIn">
+            <span style="font-size:12px;color:var(--ts);display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              当前用户：<strong>{{ userStore.userName }}</strong> ({{ userStore.userId }})
+            </span>
+          </template>
+          <template v-else>
+            <label class="field-label">你的工号</label>
+            <el-input v-model="userId" placeholder="输入你的工号" style="margin-bottom:6px" />
+          </template>
 
           <label class="field-label">输入内容</label>
           <div class="compose-input">
@@ -90,8 +97,10 @@ import { ElMessage } from 'element-plus'
 import { sendMessage, replyMessage, getInteractionList, getStats } from '../api/interaction'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
+import { useUserStore } from '../stores/user'
 
 const store = useMeetingStore()
+const userStore = useUserStore()
 const meeting = store.currentMeeting
 
 const { connected: wsConnected, lastMessage, connect } = useWebSocket(meeting.id)
@@ -99,7 +108,7 @@ connect()
 
 const filter = ref(0)
 const composeType = ref(1)
-const userId = ref('')
+const userId = ref(userStore.userId || '')
 const msgContent = ref('')
 const messages = ref([])
 const nameMap = ref({})
@@ -121,10 +130,11 @@ const loadData = async () => {
 const getUserName = (uid) => nameMap.value[uid] || uid
 
 const send = async () => {
+  const uid = userId.value || userStore.userId
   if (!msgContent.value) { ElMessage.warning('请输入内容'); return }
-  if (!userId.value) { ElMessage.warning('请输入工号'); return }
+  if (!uid) { ElMessage.warning('请输入工号'); return }
   try {
-    await sendMessage({ meetingId: meeting.id, userId: userId.value, content: msgContent.value, interactType: composeType.value })
+    await sendMessage({ meetingId: meeting.id, userId: uid, content: msgContent.value, interactType: composeType.value })
     ElMessage.success('已发送')
     msgContent.value = ''
     await loadData()

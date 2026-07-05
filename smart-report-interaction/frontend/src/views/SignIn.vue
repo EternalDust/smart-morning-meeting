@@ -9,17 +9,35 @@
     <div class="content">
       <div class="left-panel">
         <h3>签到操作</h3>
-        <label class="field-label">工号/扫码</label>
-        <div class="input-row">
-          <el-input v-model="userId" placeholder="输入工号或扫描二维码签到" size="large" />
-          <el-button type="primary" size="large" @click="doSignIn">签到</el-button>
-        </div>
+        <template v-if="userStore.isLoggedIn">
+          <div class="current-user">
+            <el-avatar :size="40" style="background:#2563EB;font-size:18px;margin-bottom:8px">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <div class="user-name">{{ userStore.userName }}</div>
+            <div class="user-id">工号 {{ userStore.userId }}</div>
+          </div>
+          <el-button type="primary" size="large" @click="doSignIn" style="width:100%;margin-bottom:8px" :disabled="stats.signed === stats.shouldAttend">一键签到</el-button>
+          <el-button size="small" @click="showQR = true" style="width:100%">分享签到二维码</el-button>
+        </template>
+        <template v-else>
+          <label class="field-label">工号/扫码</label>
+          <div class="input-row">
+            <el-input v-model="userId" placeholder="输入工号或扫描二维码签到" size="large" />
+            <el-button type="primary" size="large" @click="doSignIn">签到</el-button>
+          </div>
+          <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px">出示签到二维码</el-button>
+        </template>
 
         <div class="stat-grid">
           <div class="stat-card success"><div class="num">{{ stats.normal }}</div><div class="label">已签到</div></div>
           <div class="stat-card warning"><div class="num">{{ stats.late }}</div><div class="label">迟到</div></div>
           <div class="stat-card danger"><div class="num">{{ stats.absent }}</div><div class="label">缺席</div></div>
           <div class="stat-card primary"><div class="num">{{ stats.shouldAttend }}</div><div class="label">应到</div></div>
+        </div>
+
+        <div v-if="meetingQuality" class="quality-card">
+          <div class="q-title">会议质量评分</div>
+          <div class="q-score">{{ meetingQuality.qualityScore }}</div>
+          <div class="q-meta">出勤率 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
         </div>
 
         <div class="btn-row">
@@ -57,22 +75,47 @@
         </div>
       </div>
     </div>
+
+    <el-dialog v-model="showQR" title="扫码签到" width="300px" center>
+      <div style="text-align:center">
+        <canvas ref="qrCanvas" style="width:220px;height:220px"></canvas>
+        <p style="font-size:12px;color:var(--ts);margin-top:10px">参会人员使用手机扫描二维码即可签到</p>
+        <p style="font-size:11px;color:var(--p);margin-top:4px">{{ meeting.title }}</p>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
+import { getMeetingAnalytics } from '../api/analytics'
 import { useMeetingStore } from '../stores/meeting'
+import { useUserStore } from '../stores/user'
 
 const store = useMeetingStore()
+const userStore = useUserStore()
 const meeting = store.currentMeeting
 
-const userId = ref('')
+const userId = ref(userStore.userId || '')
 const records = ref([])
 const nameMap = ref({})
 const stats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
+const meetingQuality = ref(null)
+const showQR = ref(false)
+const qrCanvas = ref(null)
+
+watch(showQR, async (val) => {
+  if (val) {
+    await nextTick()
+    if (qrCanvas.value) {
+      const url = `${window.location.origin}/sign?meetingId=${meeting.id}`
+      await QRCode.toCanvas(qrCanvas.value, url, { width: 220, margin: 1, color: { dark: '#2563EB' } })
+    }
+  }
+})
 
 const loadData = async () => {
   const res = await getSignList(meeting.id)
@@ -83,16 +126,20 @@ const loadData = async () => {
   stats.absent = res.data.absent
   stats.shouldAttend = res.data.shouldAttend
   stats.signed = res.data.signed
+  try {
+    const aRes = await getMeetingAnalytics(meeting.id)
+    meetingQuality.value = aRes.data
+  } catch { /* analytics may not exist yet */ }
 }
 
 const getUserName = (uid) => nameMap.value[uid] || uid
 
 const doSignIn = async () => {
-  if (!userId.value) { ElMessage.warning('请输入工号'); return }
+  const id = userId.value || userStore.userId
+  if (!id) { ElMessage.warning('请输入工号'); return }
   try {
-    await signIn(meeting.id, userId.value, 2)
+    await signIn(meeting.id, id, 2)
     ElMessage.success('签到成功')
-    userId.value = ''
     await loadData()
   } catch (e) {
     // error already shown by request interceptor
@@ -131,4 +178,11 @@ onMounted(loadData)
 .panel-header h3 { font-size:14px }
 .count { font-size:12px; color:var(--ts) }
 .table-scroll { flex:1; overflow-y:auto }
+.current-user { text-align:center; padding:8px 0 12px }
+.user-name { font-size:15px; font-weight:600; color:#1E293B }
+.user-id { font-size:12px; color:var(--ts); margin-top:2px }
+.quality-card { margin-top:12px; padding:12px; background:var(--pb); border-radius:8px; text-align:center }
+.q-title { font-size:12px; color:var(--ts); margin-bottom:4px }
+.q-score { font-size:28px; font-weight:700; color:var(--p) }
+.q-meta { font-size:11px; color:var(--ts); margin-top:4px }
 </style>

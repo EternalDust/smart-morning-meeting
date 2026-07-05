@@ -19,21 +19,34 @@
             @click="currentAgenda = i+1">{{ i+1 }}. {{ a }}</div>
         </div>
 
-        <div class="speaker-info">
-          当前汇报人：
-          <el-avatar :size="28" style="background:#2563EB">{{ speaker }}</el-avatar>
-          <strong>{{ speaker }}</strong>
-          <span>· 外科</span>
-        </div>
+        <template v-if="userStore.isLoggedIn">
+          <div class="speaker-info">
+            当前汇报人：
+            <el-avatar :size="28" style="background:#2563EB">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <strong>{{ userStore.userName }}</strong>
+            <span v-if="speakerDept">· {{ speakerDept }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <label class="field-label">汇报人工号</label>
+          <el-input v-model="speakerId" placeholder="输入汇报人工号" style="margin-bottom:8px" />
+        </template>
 
-        <label class="field-label">汇报人工号</label>
-        <el-input v-model="speakerId" placeholder="输入汇报人工号" style="margin-bottom:8px" />
-
-        <label class="field-label">发言内容</label>
-        <el-input v-model="content" type="textarea" :rows="3" placeholder="录入发言内容或要点..." />
+        <label class="field-label">发言要点</label>
+        <el-input v-model="content" type="textarea" :rows="4" placeholder="录入发言人要点或会议摘要..." />
         <div class="action-row">
           <el-button @click="saveDraft">暂存草稿</el-button>
           <el-button type="primary" @click="saveSpeech">保存发言</el-button>
+        </div>
+
+        <div v-if="speechStats" class="analytics-strip">
+          <span class="as-item">发言 {{ speechStats.speechCount }}</span>
+          <span class="as-divider">|</span>
+          <span class="as-item">互动 {{ speechStats.interactionCount }}</span>
+          <span class="as-divider">|</span>
+          <span class="as-item">出勤率 {{ speechStats.attendRate }}%</span>
+          <span class="as-divider">|</span>
+          <span class="as-item as-highlight">评分 {{ speechStats.qualityScore }}</span>
         </div>
 
         <div class="record-list">
@@ -69,16 +82,20 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { saveSpeech as apiSave, getSpeechList, getSummary } from '../api/report'
+import { getMeetingAnalytics } from '../api/analytics'
 import { useMeetingStore } from '../stores/meeting'
+import { useUserStore } from '../stores/user'
 
 const store = useMeetingStore()
+const userStore = useUserStore()
 const meeting = store.currentMeeting
 
 const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
 const currentAgenda = ref(2)
-const speaker = ref('李明辉')
-const speakerId = ref('')
+const speakerId = ref(userStore.userId || '')
 const content = ref('')
+const speakerDept = ref('')
+const speechStats = ref(null)
 const editingId = ref(null)
 const records = ref([])
 const nameMap = ref({})
@@ -90,6 +107,10 @@ const loadData = async () => {
   nameMap.value = res.data.nameMap || {}
   const s = await getSummary(meeting.id)
   if (s.data) summaryHtml.value = s.data.summary || ''
+  try {
+    const aRes = await getMeetingAnalytics(meeting.id)
+    speechStats.value = aRes.data
+  } catch { /* analytics may not exist yet */ }
 }
 
 const getSpeakerName = (sid) => nameMap.value[sid] || sid
@@ -153,4 +174,8 @@ onMounted(loadData)
 .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-shrink:0 }
 .panel-header h3 { font-size:14px }
 .summary-body { flex:1; overflow-y:auto; border:1px solid var(--bd); border-radius:6px; padding:12px; font-size:13px; line-height:1.8 }
+.analytics-strip { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--pb); border-radius:6px; margin-bottom:10px; font-size:12px; flex-shrink:0 }
+.as-item { color:var(--ts) }
+.as-divider { color:var(--bd) }
+.as-highlight { color:var(--p); font-weight:700 }
 </style>
