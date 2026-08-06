@@ -1,6 +1,7 @@
 package com.huadi.smm.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.huadi.smm.ai.dto.SummaryResult;
 import com.huadi.smm.common.Result;
 import com.huadi.smm.dao.MemberMapper;
 import com.huadi.smm.entity.Member;
@@ -58,16 +59,24 @@ public class ReportController {
         return Result.ok(reportService.saveSummary(meetingId, summary));
     }
 
+    @PostMapping("/summary/generate/{meetingId}")
+    public Result<?> generateSummary(@PathVariable Long meetingId) {
+        try {
+            return Result.ok(reportService.generateSummary(meetingId));
+        } catch (RuntimeException e) {
+            return Result.fail(500, "AI 摘要生成失败：" + e.getMessage());
+        }
+    }
+
     @GetMapping("/summary/{meetingId}")
-    public Result<MeetingSummary> getSummary(@PathVariable Long meetingId) {
-        return Result.ok(reportService.getSummary(meetingId));
+    public Result<SummaryResult> getSummary(@PathVariable Long meetingId) {
+        return Result.ok(reportService.getSummaryResult(meetingId));
     }
 
     @GetMapping("/summary/export/{meetingId}")
     public Result<Map<String, String>> exportSummary(@PathVariable Long meetingId) {
-        MeetingSummary summary = reportService.getSummary(meetingId);
         Map<String, String> result = new HashMap<>();
-        result.put("content", summary != null ? summary.getSummary() : "");
+        result.put("content", reportService.getSummaryText(meetingId));
         result.put("meetingId", String.valueOf(meetingId));
         return Result.ok(result);
     }

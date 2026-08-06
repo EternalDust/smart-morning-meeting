@@ -18,6 +18,7 @@ export struct InteractionPageContent {
   @State showVote: boolean = false
   @State voteTitle: string = ''
   @State voteOptions: string = ''
+  @State aiReplyingId: number = 0
   private ws: webSocket.WebSocket | null = null
 
   async aboutToAppear() {
@@ -79,6 +80,14 @@ export struct InteractionPageContent {
     } catch (e) {}
   }
 
+  async aiReply(item: InteractionMessage) {
+    this.aiReplyingId = item.id
+    try {
+      await ApiService.aiAnswer(item.id)
+      await this.loadData()
+    } catch (e) {} finally { this.aiReplyingId = 0 }
+  }
+
   build() {
     Stack() {
       Column() {
@@ -102,6 +111,15 @@ export struct InteractionPageContent {
                       .fontSize(11).fontColor('#94A3B8')
                   }
                   Text(item.content).fontSize(14).fontColor('#475569').margin({ top: 6 }).lineHeight(20)
+                  if (!item.reply && this.userId.startsWith('2')) {
+                    Row() {
+                      Button(this.aiReplyingId === item.id ? '答复中...' : 'AI 答复')
+                        .height(28).fontSize(12).margin({ top: 6 })
+                        .enabled(this.aiReplyingId !== item.id)
+                        .backgroundColor('#2563EB').borderRadius(6)
+                        .onClick(() => this.aiReply(item))
+                    }.width('100%').alignItems(HorizontalAlign.Start)
+                  }
                   if (item.reply) {
                     Text(`回复：${item.reply}`).fontSize(13).fontColor('#1E293B')
                       .margin({ top: 8 }).padding(10)

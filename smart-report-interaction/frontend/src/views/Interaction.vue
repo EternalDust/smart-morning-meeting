@@ -21,7 +21,10 @@
               <div class="chat-content">{{ m.content }}</div>
               <div v-if="m.reply" class="chat-reply"><span>回复</span>{{ m.reply }}</div>
             </div>
-            <el-button v-if="!m.reply && isAdmin" link type="primary" size="small" @click="replyTo(m)">回复</el-button>
+            <div v-if="!m.reply && isAdmin" class="chat-actions">
+              <el-button link type="primary" size="small" :loading="aiReplyingId === m.id" @click="aiReplyTo(m)">AI 答复</el-button>
+              <el-button link type="primary" size="small" @click="replyTo(m)">回复</el-button>
+            </div>
           </div>
         </div>
 
@@ -72,7 +75,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { sendMessage, replyMessage, getInteractionList } from '../api/interaction'
+import { sendMessage, replyMessage, aiAnswer, getInteractionList } from '../api/interaction'
 import { getSignList } from '../api/sign'
 import { getTimePattern } from '../api/analytics'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -126,6 +129,17 @@ const send = async () => {
   } catch {}
 }
 
+const aiReplyingId = ref(null)
+
+const aiReplyTo = async (m) => {
+  aiReplyingId.value = m.id
+  try {
+    await aiAnswer(m.id)
+    ElMessage.success('AI 初步答复已生成')
+    await loadData()
+  } catch {} finally { aiReplyingId.value = null }
+}
+
 const replyTo = async (m) => {
   const reply = prompt('回复内容：')
   if (reply) { await replyMessage(m.id, reply); await loadData() }
@@ -166,6 +180,7 @@ onMounted(loadData)
 .chat-time { font-size:11px; color:var(--ts); margin-left:auto }
 .chat-content { font-size:13px; color:#1E293B; margin:4px 0; white-space:pre-wrap }
 .chat-reply { margin-top:4px; padding:4px 8px; background:var(--pb); border-radius:4px; font-size:12px }
+.chat-actions { display:flex; align-items:center; gap:2px; flex-shrink:0 }
 .chat-reply span { color:var(--p); font-weight:600; margin-right:6px }
 .chat-compose { flex-shrink:0; padding:12px; background:#fff; border:1px solid var(--bd); border-radius:8px }
 .compose-row { display:flex; align-items:center; gap:10px }

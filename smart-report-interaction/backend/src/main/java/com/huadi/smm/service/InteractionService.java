@@ -1,15 +1,20 @@
 package com.huadi.smm.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.huadi.smm.ai.AiClient;
+import com.huadi.smm.ai.dto.SpeechLine;
 import com.huadi.smm.dao.InteractionMapper;
 import com.huadi.smm.dao.MeetingInfoMapper;
+import com.huadi.smm.dao.SpeechRecordMapper;
 import com.huadi.smm.entity.Interaction;
 import com.huadi.smm.entity.MeetingInfo;
+import com.huadi.smm.entity.SpeechRecord;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,6 +25,12 @@ public class InteractionService {
 
     @Resource
     private MeetingInfoMapper meetingInfoMapper;
+
+    @Resource
+    private SpeechRecordMapper speechRecordMapper;
+
+    @Resource
+    private AiClient aiClient;
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -39,6 +50,23 @@ public class InteractionService {
             throw new RuntimeException("互动消息不存在");
         }
         msg.setReply(reply);
+        interactionMapper.updateById(msg);
+        return msg;
+    }
+
+    public Interaction aiReply(Long id) {
+        Interaction msg = interactionMapper.selectById(id);
+        if (msg == null) {
+            throw new RuntimeException("互动消息不存在");
+        }
+        List<SpeechLine> context = new ArrayList<>();
+        LambdaQueryWrapper<SpeechRecord> qw = new LambdaQueryWrapper<>();
+        qw.eq(SpeechRecord::getMeetingId, msg.getMeetingId());
+        for (SpeechRecord r : speechRecordMapper.selectList(qw)) {
+            context.add(new SpeechLine(r.getSpeakerId(), r.getContent()));
+        }
+        String answer = aiClient.answerQuestion(msg.getContent(), context);
+        msg.setReply("【AI初步答复】" + answer);
         interactionMapper.updateById(msg);
         return msg;
     }

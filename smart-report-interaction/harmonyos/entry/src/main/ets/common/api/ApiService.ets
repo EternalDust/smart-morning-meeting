@@ -1,7 +1,7 @@
 import { HttpClient } from './HttpClient'
 import { ApiResponse } from '../../model/ApiResponse'
 import { SignRecord, SignStats } from '../../model/SignRecord'
-import { SpeechRecord, MeetingSummary } from '../../model/SpeechRecord'
+import { SpeechRecord } from '../../model/SpeechRecord'
 import { InteractionMessage } from '../../model/InteractionMessage'
 
 export interface LoginData {
@@ -37,6 +37,13 @@ export interface InteractionStats {
   replied: number
 }
 
+export interface SummaryData {
+  summary: string
+  keyPoints: string[]
+  decisions: string[]
+  medicalEntities: string[]
+}
+
 export class ApiService {
   static login(userId: string, password: string) {
     return HttpClient.post<ApiResponse<LoginData>>('/api/auth/login', { userId, password })
@@ -59,7 +66,11 @@ export class ApiService {
   }
 
   static getSummary(meetingId: number) {
-    return HttpClient.get<ApiResponse<MeetingSummary>>(`/api/report/meeting/summary/${meetingId}`)
+    return HttpClient.get<ApiResponse<SummaryData>>(`/api/report/meeting/summary/${meetingId}`)
+  }
+
+  static generateSummary(meetingId: number) {
+    return HttpClient.post<ApiResponse<SummaryData>>(`/api/report/meeting/summary/generate/${meetingId}`)
   }
 
   static sendMessage(meetingId: number, userId: number, interactType: number, content: string) {
@@ -68,6 +79,10 @@ export class ApiService {
 
   static replyMessage(messageId: number, reply: string) {
     return HttpClient.post<ApiResponse<InteractionMessage>>(`/api/report/meeting/interaction/reply/${messageId}`, { reply })
+  }
+
+  static aiAnswer(messageId: number) {
+    return HttpClient.post<ApiResponse<InteractionMessage>>(`/api/report/meeting/interaction/ai-reply/${messageId}`)
   }
 
   static getInteractionList(meetingId: number, type?: number) {

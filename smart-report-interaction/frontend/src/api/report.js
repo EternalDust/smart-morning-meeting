@@ -7,3 +7,5 @@ export const getSpeechList = (meetingId) => request.get(`/meeting/speech/list/${
 export const saveSummary = (meetingId, summary) =>
   request.post('/meeting/summary/save', { meetingId, summary })
 export const getSummary = (meetingId) => request.get(`/meeting/summary/${meetingId}`)
+export const aiGenerateSummary = (meetingId) =>
+  request.post(`/meeting/summary/generate/${meetingId}`, null, { timeout: 60000 })

@@ -54,8 +54,30 @@
         </div>
 
         <div class="side-card">
-          <div class="sc-title">会议摘要</div>
-          <div class="summary-text" v-html="summaryHtml"></div>
+          <div class="sc-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span>会议摘要</span>
+            <el-button size="small" type="primary" link :loading="aiLoading" @click="genSummary">AI 生成摘要</el-button>
+          </div>
+          <template v-if="aiSummary">
+            <div class="ai-scroll">
+              <div class="summary-text">{{ aiSummary.summary }}</div>
+              <template v-if="aiSummary.keyPoints && aiSummary.keyPoints.length">
+                <div class="ai-label">关键要点</div>
+                <div v-for="(k,i) in aiSummary.keyPoints" :key="i" class="ai-kp">{{ i+1 }}. {{ k }}</div>
+              </template>
+              <template v-if="aiSummary.decisions && aiSummary.decisions.length">
+                <div class="ai-label">决策事项</div>
+                <div v-for="(d,i) in aiSummary.decisions" :key="i" class="ai-kp">• {{ d }}</div>
+              </template>
+              <template v-if="aiSummary.medicalEntities && aiSummary.medicalEntities.length">
+                <div class="ai-label">医疗实体</div>
+                <div class="ai-tags">
+                  <el-tag v-for="(e,i) in aiSummary.medicalEntities" :key="i" size="small" effect="light" type="primary" style="margin:2px">{{ e }}</el-tag>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div v-else class="summary-text">会议进行中...</div>
         </div>
       </div>
     </div>
@@ -64,7 +86,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getSpeechList, getSummary } from '../api/report'
+import { ElMessage } from 'element-plus'
+import { getSpeechList, getSummary, aiGenerateSummary } from '../api/report'
 import { getMeetingAnalytics, getWeeklyTrend } from '../api/analytics'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
@@ -80,16 +103,31 @@ const speechStats = ref(null)
 const weeklyTrend = ref([])
 const records = ref([])
 const nameMap = ref({})
-const summaryHtml = ref('<p style="color:#64748B">会议进行中...</p>')
+const aiSummary = ref(null)
+const aiLoading = ref(false)
+
+const normalizeSummary = (data) => {
+  if (data && typeof data === 'object' && data.summary != null) return data
+  if (typeof data === 'string' && data) return { summary: data, keyPoints: [], decisions: [], medicalEntities: [] }
+  return null
+}
 
 const loadData = async () => {
   const res = await getSpeechList(meeting.id)
   records.value = res.data.records || []
   nameMap.value = res.data.nameMap || {}
-  const s = await getSummary(meeting.id)
-  if (s.data) summaryHtml.value = s.data.summary || summaryHtml.value
+  try { const s = await getSummary(meeting.id); aiSummary.value = normalizeSummary(s.data) } catch {}
   try { const a = await getMeetingAnalytics(meeting.id); speechStats.value = a.data } catch {}
   try { const w = await getWeeklyTrend(); weeklyTrend.value = w.data || [] } catch {}
+}
+
+const genSummary = async () => {
+  aiLoading.value = true
+  try {
+    const res = await aiGenerateSummary(meeting.id)
+    aiSummary.value = res.data || {}
+    ElMessage.success('摘要已生成')
+  } catch {} finally { aiLoading.value = false }
 }
 
 const getSpeakerName = (sid) => nameMap.value[sid] || sid
@@ -124,5 +162,9 @@ onMounted(loadData)
 .sc-title { font-size:12px; color:var(--ts); margin-bottom:6px }
 .sc-score { font-size:36px; font-weight:700; color:var(--p) }
 .sc-meta { font-size:11px; color:var(--ts); margin-top:6px }
-.summary-text { text-align:left; font-size:13px; line-height:1.7; color:#475569; min-height:60px; max-height:200px; overflow-y:auto }
+.summary-text { text-align:left; font-size:13px; line-height:1.7; color:#475569; min-height:60px }
+.ai-scroll { max-height:320px; overflow-y:auto }
+.ai-label { font-size:11px; font-weight:600; color:var(--ts); margin:8px 0 4px }
+.ai-kp { font-size:12px; color:#334155; line-height:1.6 }
+.ai-tags { display:flex; flex-wrap:wrap }
 </style>

@@ -55,6 +55,24 @@ public class InteractionController {
         }
     }
 
+    @PostMapping("/ai-reply/{id}")
+    public Result<?> aiReply(@PathVariable Long id) {
+        try {
+            Interaction result = interactionService.aiReply(id);
+            try {
+                Map<String, Object> wsMsg = new HashMap<>();
+                wsMsg.put("type", "interaction");
+                wsMsg.put("interactType", result.getInteractType());
+                wsMsg.put("userId", result.getUserId());
+                wsMsg.put("reply", result.getReply());
+                RealtimeServer.broadcast(result.getMeetingId(), mapper.writeValueAsString(wsMsg));
+            } catch (Exception ignored) {}
+            return Result.ok(result);
+        } catch (RuntimeException e) {
+            return Result.fail(500, "AI 答复生成失败：" + e.getMessage());
+        }
+    }
+
     @GetMapping("/list/{meetingId}")
     public Result<Map<String, Object>> list(@PathVariable Long meetingId,
                                             @RequestParam(required = false) Integer type) {

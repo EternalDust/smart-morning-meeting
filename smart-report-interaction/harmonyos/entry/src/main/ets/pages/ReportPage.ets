@@ -1,12 +1,16 @@
 import { ApiService, SpeechListData } from '../common/api/ApiService'
 import { EmptyState } from '../common/components/EmptyState'
-import { SpeechRecord, MeetingSummary } from '../model/SpeechRecord'
+import { SpeechRecord } from '../model/SpeechRecord'
 import { TokenManager } from '../common/utils/TokenManager'
 
 @Component
 export struct ReportPageContent {
   @State speeches: SpeechRecord[] = []
-  @State summary: string = ''
+  @State aiSummary: string = ''
+  @State aiKeyPoints: Array<string> = []
+  @State aiDecisions: Array<string> = []
+  @State aiEntities: Array<string> = []
+  @State isGenerating: boolean = false
   @State isLoading: boolean = false
   @State nameMap: Record<number, string> = {}
   @State userName: string = ''
@@ -30,7 +34,7 @@ export struct ReportPageContent {
       const data = speechRes.data as SpeechListData
       this.speeches = data.records
       this.nameMap = data.nameMap
-      this.summary = (summaryRes.data as MeetingSummary)?.summary || ''
+      this.applySummary(summaryRes.data)
     } finally { this.isLoading = false }
     try {
       const a = await ApiService.getMeetingAnalytics(1)
@@ -46,6 +50,22 @@ export struct ReportPageContent {
     } catch (e) {}
   }
 
+  applySummary(data: Object | null) {
+    const d = data as Record<string, Object>
+    this.aiSummary = (d['summary'] as string) || ''
+    this.aiKeyPoints = (d['keyPoints'] as Array<string>) || []
+    this.aiDecisions = (d['decisions'] as Array<string>) || []
+    this.aiEntities = (d['medicalEntities'] as Array<string>) || []
+  }
+
+  async generateAiSummary() {
+    this.isGenerating = true
+    try {
+      const res = await ApiService.generateSummary(1)
+      this.applySummary(res.data)
+    } catch (e) {} finally { this.isGenerating = false }
+  }
+
   build() {
     Column() {
       Column() {
@@ -55,6 +75,46 @@ export struct ReportPageContent {
         Text('语音接入后自动转写为文字，AI 提取关键要点').fontSize(11).fontColor('#94A3B8').margin({ top: 4 })
       }
       .width('100%').padding(16).backgroundColor('#EFF6FF').borderRadius(8)
+      .margin({ left: 12, right: 12, top: 12 })
+
+      Column() {
+        Row() {
+          Text('AI 会议摘要').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+          Blank()
+          Button(this.isGenerating ? '生成中...' : 'AI 生成摘要')
+            .height(32).fontSize(12)
+            .enabled(!this.isGenerating)
+            .backgroundColor('#2563EB').borderRadius(6)
+            .onClick(() => this.generateAiSummary())
+        }.width('100%')
+        if (this.aiSummary) {
+          Text(this.aiSummary).fontSize(13).fontColor('#475569').margin({ top: 6 }).lineHeight(20)
+        }
+        if (this.aiKeyPoints.length > 0) {
+          Text('关键要点').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#1E293B').margin({ top: 8 })
+          ForEach(this.aiKeyPoints, (k: string, i: number) => {
+            Text(`${i + 1}. ${k}`).fontSize(12).fontColor('#475569').margin({ top: 2 }).lineHeight(18)
+          })
+        }
+        if (this.aiDecisions.length > 0) {
+          Text('决策事项').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#1E293B').margin({ top: 8 })
+          ForEach(this.aiDecisions, (d: string) => {
+            Text(`• ${d}`).fontSize(12).fontColor('#475569').margin({ top: 2 }).lineHeight(18)
+          })
+        }
+        if (this.aiEntities.length > 0) {
+          Text('医疗实体').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#1E293B').margin({ top: 8 })
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(this.aiEntities, (e: string) => {
+              Text(e).fontSize(11).fontColor('#2563EB')
+                .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                .backgroundColor('#EFF6FF').borderRadius(4)
+                .margin({ right: 6, top: 4 })
+            })
+          }
+        }
+      }
+      .width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(8)
       .margin({ left: 12, right: 12, top: 12 })
 
       Text('发言记录').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1E293B')
