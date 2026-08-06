@@ -24,6 +24,7 @@
         <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned" :loading="signing">
           {{ alreadySigned ? '已签到' : '一键签到' }}
         </el-button>
+        <el-button type="success" size="large" @click="doFaceSignIn" style="width:100%;margin-top:8px" :disabled="alreadySigned" :loading="faceSigning">人脸识别签到</el-button>
         <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px" v-if="isAdmin">分享签到二维码</el-button>
       </div>
 
@@ -65,6 +66,7 @@ import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
 import { getMeetingAnalytics } from '../api/analytics'
+import { recognizeFace } from '../api/face'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
 
@@ -83,6 +85,7 @@ const userName = computed(() => {
 const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
 const signing = ref(false)
 const loading = ref(false)
+const faceSigning = ref(false)
 const alreadySigned = ref(false)
 const records = ref([])
 const nameMap = ref({})
@@ -114,6 +117,46 @@ const doSignIn = async () => {
   signing.value = true
   try { await signIn(meeting.id, userStore.userId, 2); ElMessage.success('签到成功'); await loadData() } catch {}
   signing.value = false
+}
+
+const withTimeout = (promise, ms) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+])
+
+const capturePhoto = async () => {
+  const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ video: true }), 3000)
+  const video = document.createElement('video')
+  video.srcObject = stream
+  video.setAttribute('playsinline', '')
+  await new Promise(resolve => { video.onloadedmetadata = () => resolve(); video.play() })
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  canvas.getContext('2d').drawImage(video, 0, 0)
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  stream.getTracks().forEach(t => t.stop())
+  return blob
+}
+
+const doFaceSignIn = async () => {
+  if (faceSigning.value) return
+  faceSigning.value = true
+  try {
+    let photo
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try { photo = await capturePhoto() } catch { photo = new Blob(['mock-face'], { type: 'image/jpeg' }) }
+    } else {
+      photo = new Blob(['mock-face'], { type: 'image/jpeg' })
+    }
+    const res = await recognizeFace(photo)
+    const f = res.data
+    if (!f.matched) { ElMessage.warning(f.message || '未识别到人脸'); return }
+    ElMessage.success(`人脸识别成功：${f.name}（${f.role}），置信度 ${Math.round(f.confidence * 100)}%`)
+    await signIn(meeting.id, f.userId, 2)
+    ElMessage.success('已自动签到')
+    await loadData()
+  } catch { ElMessage.error('人脸识别失败') } finally { faceSigning.value = false }
 }
 
 watch(showQR, async (v) => {

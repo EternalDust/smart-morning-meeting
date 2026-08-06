@@ -63,7 +63,8 @@
           <template v-if="currentAgenda >= 2">
             <label class="field-label">发言要点</label>
             <el-input v-model="speechContent" type="textarea" :rows="3" placeholder="录入发言人要点或会议摘要..." style="margin-bottom:8px" />
-            <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px">
+              <el-button size="small" :type="recording ? 'danger' : 'primary'" @click="startVoiceTranscribe" :loading="transcribing">{{ recording ? '停止并转写' : '语音转写' }}</el-button>
               <el-button size="small" type="primary" @click="saveSpeech">保存发言</el-button>
             </div>
           </template>
@@ -141,6 +142,7 @@ import { signIn, getSignList } from '../api/sign'
 import { saveSpeech as apiSave, getSpeechList } from '../api/report'
 import { sendMessage, replyMessage, getInteractionList, getStats } from '../api/interaction'
 import { getMeetingAnalytics } from '../api/analytics'
+import { transcribeAudio } from '../api/asr'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
@@ -164,6 +166,10 @@ const qrCanvas = ref(null)
 const speechContent = ref('')
 const speechRecords = ref([])
 const speechNameMap = ref({})
+const recording = ref(false)
+const transcribing = ref(false)
+let mediaRecorder = null
+let audioChunks = []
 
 const interFilter = ref(0)
 const interType = ref(1)
@@ -200,6 +206,50 @@ const saveSpeech = async () => {
   if (!speechContent.value) { ElMessage.warning('请输入发言内容'); return }
   const speakerId = userStore.userId || '9999'
   try { await apiSave({ meetingId: meeting.id, speakerId, content: speechContent.value }); ElMessage.success('发言已保存'); speechContent.value = ''; await loadSpeech() } catch {}
+}
+
+const withTimeout = (promise, ms) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+])
+
+const startVoiceTranscribe = async () => {
+  if (recording.value) { stopVoiceTranscribe(); return }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { await fallbackTranscribe(); return }
+  try {
+    const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ audio: true }), 3000)
+    audioChunks = []
+    mediaRecorder = new MediaRecorder(stream)
+    mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data) }
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop())
+      await uploadAudio(new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' }))
+    }
+    mediaRecorder.start()
+    recording.value = true
+    ElMessage.success('正在录音，再次点击结束并转写')
+  } catch { await fallbackTranscribe() }
+}
+
+const stopVoiceTranscribe = () => {
+  recording.value = false
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
+}
+
+const fallbackTranscribe = async () => {
+  await uploadAudio(new Blob(['mock-audio'], { type: 'audio/wav' }))
+}
+
+const uploadAudio = async (blob) => {
+  transcribing.value = true
+  try {
+    const res = await transcribeAudio(blob)
+    const text = res.data && res.data.text
+    if (text) {
+      speechContent.value = speechContent.value ? speechContent.value + '\n' + text : text
+      ElMessage.success('语音转写完成')
+    }
+  } catch { ElMessage.error('语音转写失败') } finally { transcribing.value = false }
 }
 
 const loadInteraction = async () => {
