@@ -1,7 +1,7 @@
 import { UIAbility, Want, AbilityConstant } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { TokenManager } from '../../../../../ets/common/utils/TokenManager';
+import { TokenManager } from '../common/utils/TokenManager';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
