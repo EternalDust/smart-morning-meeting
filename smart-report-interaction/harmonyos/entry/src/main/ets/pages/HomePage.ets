@@ -1,3 +1,4 @@
+import router from '@ohos.router'
 import { TokenManager } from '../common/utils/TokenManager'
 
 @Entry
@@ -15,6 +16,11 @@ struct HomePage {
     this.userName = await TokenManager.getUserName()
   }
 
+  async logout() {
+    await TokenManager.clear()
+    router.replaceUrl({ url: 'pages/LoginPage' })
+  }
+
   @Builder TabContent(index: number) {
     if (index === 0) { SignInPageContent() }
     else if (index === 1) { ReportPageContent() }
@@ -29,7 +35,10 @@ struct HomePage {
           Text(`你好，${this.userName}`).fontSize(12).fontColor('#475569')
         }
         Blank()
-        Text('🕐').fontSize(20)
+        Button('退出')
+          .height(28).fontSize(12)
+          .backgroundColor('#FEF2F2').fontColor('#DC2626').borderRadius(6)
+          .onClick(() => this.logout())
       }
       .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
       .backgroundColor('#FFFFFF')

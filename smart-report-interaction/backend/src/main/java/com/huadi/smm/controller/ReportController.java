@@ -54,8 +54,12 @@ public class ReportController {
 
     @PostMapping("/summary/save")
     public Result<MeetingSummary> saveSummary(@RequestBody Map<String, Object> body) {
-        Long meetingId = Long.valueOf(body.get("meetingId").toString());
+        Object meetingIdRaw = body.get("meetingId");
         String summary = (String) body.get("summary");
+        if (meetingIdRaw == null || summary == null || summary.isEmpty()) {
+            return Result.fail(400, "参数缺失");
+        }
+        Long meetingId = Long.valueOf(meetingIdRaw.toString());
         return Result.ok(reportService.saveSummary(meetingId, summary));
     }
 

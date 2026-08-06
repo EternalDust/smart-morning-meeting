@@ -5,7 +5,6 @@
       <h2>{{ meeting.title }}</h2>
       <el-tag :type="meeting.status === '进行中' ? 'success' : 'info'" size="small">{{ meeting.status }}</el-tag>
       <span class="mr-time">{{ meeting.time }} · {{ meeting.location }}</span>
-      <el-button size="small" type="danger" plain style="margin-left:auto">结束会议</el-button>
     </div>
 
     <!-- 三栏主体 -->
@@ -24,19 +23,11 @@
 
         <div class="mr-panel">
           <h3>签到</h3>
-          <template v-if="userStore.isLoggedIn">
-            <div class="sign-user">
-              <el-avatar :size="32" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
-              <span>{{ userStore.userName }}</span>
-            </div>
-            <el-button type="primary" size="small" @click="doSignIn" style="width:100%">一键签到</el-button>
-          </template>
-          <template v-else>
-            <div style="display:flex;gap:6px">
-              <el-input v-model="signUserId" placeholder="工号" size="small" />
-              <el-button type="primary" size="small" @click="doSignIn">签到</el-button>
-            </div>
-          </template>
+          <div class="sign-user">
+            <el-avatar :size="32" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <span>{{ userStore.userName }}</span>
+          </div>
+          <el-button type="primary" size="small" @click="doSignIn" style="width:100%" :disabled="signing">一键签到</el-button>
           <div class="sign-stats">
             <span>已签 {{ signStats.signed }}/{{ signStats.shouldAttend }}</span>
             <span style="color:var(--w)">迟到 {{ signStats.late }}</span>
@@ -72,8 +63,7 @@
           <template v-if="currentAgenda >= 2">
             <label class="field-label">发言要点</label>
             <el-input v-model="speechContent" type="textarea" :rows="3" placeholder="录入发言人要点或会议摘要..." style="margin-bottom:8px" />
-            <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px">
-              <el-button size="small" @click="saveDraft">暂存</el-button>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
               <el-button size="small" type="primary" @click="saveSpeech">保存发言</el-button>
             </div>
           </template>
@@ -133,18 +123,6 @@
       </div>
     </div>
 
-    <!-- 底部功能栏 -->
-    <div class="mr-toolbar">
-      <el-button size="small" type="primary" plain>签到</el-button>
-      <el-button size="small" plain>汇报</el-button>
-      <el-button size="small" plain>互动</el-button>
-      <el-button size="small" plain @click="$router.push('/analytics')">分析</el-button>
-      <el-divider direction="vertical" />
-      <el-button size="small" disabled>审批</el-button>
-      <el-button size="small" disabled>督办</el-button>
-      <el-button size="small" disabled>可视化</el-button>
-    </div>
-
     <!-- QR 弹窗 -->
     <el-dialog v-model="showQR" title="扫码签到" width="280px" center>
       <div style="text-align:center">
@@ -171,15 +149,13 @@ const store = useMeetingStore()
 const userStore = useUserStore()
 const meeting = store.currentMeeting
 
-const { connected: wsConnected, lastMessage, connect } = useWebSocket(meeting.id)
+const { lastMessage, connect } = useWebSocket(meeting.id)
 connect()
 
 const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
 const currentAgenda = ref(2)
 
-const signUserId = ref('')
-const signRecords = ref([])
-const signNameMap = ref({})
+const signing = ref(false)
 const signStats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
 const meetingQuality = ref(null)
 const showQR = ref(false)
@@ -198,8 +174,6 @@ const interStats = reactive({ questions: 0, feedback: 0, votes: 0, replied: 0 })
 
 const loadSign = async () => {
   const res = await getSignList(meeting.id)
-  signRecords.value = res.data.records
-  signNameMap.value = res.data.nameMap || {}
   Object.assign(signStats, {
     normal: res.data.normal, late: res.data.late, absent: res.data.absent,
     shouldAttend: res.data.shouldAttend, signed: res.data.signed
@@ -208,9 +182,10 @@ const loadSign = async () => {
 }
 
 const doSignIn = async () => {
-  const uid = userStore.userId || signUserId.value
-  if (!uid) { ElMessage.warning('请输入工号'); return }
-  try { await signIn(meeting.id, uid, 2); ElMessage.success('签到成功'); signUserId.value = ''; await loadSign() } catch {}
+  const uid = userStore.userId
+  if (!uid) { ElMessage.warning('请先登录'); return }
+  signing.value = true
+  try { await signIn(meeting.id, uid, 2); ElMessage.success('签到成功'); await loadSign() } catch {} finally { signing.value = false }
 }
 
 const loadSpeech = async () => {
@@ -220,7 +195,6 @@ const loadSpeech = async () => {
 }
 
 const getSpeakerName = (sid) => speechNameMap.value[sid] || sid
-const saveDraft = () => ElMessage.info('草稿已暂存')
 
 const saveSpeech = async () => {
   if (!speechContent.value) { ElMessage.warning('请输入发言内容'); return }
@@ -255,7 +229,7 @@ const replyTo = async (m) => {
 }
 
 watch(showQR, async (v) => {
-  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/meeting/${meeting.id}`, { width: 200, margin: 1 }) }
+  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meeting.id}`, { width: 200, margin: 1 }) }
 })
 
 watch(lastMessage, () => { loadSign(); loadInteraction() })
@@ -273,7 +247,6 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction() })
 .mr-center { flex:1; padding:10px; overflow-y:auto; background:#fff }
 .mr-right { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-left:1px solid var(--bd); background:#fff }
 .mr-panel { background:#fff; padding:10px; border-radius:var(--radius); border:1px solid var(--bd); margin-bottom:8px }
-.mr-toolbar { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 16px; background:#fff; border-top:1px solid var(--bd); flex-shrink:0 }
 .agenda-item { padding:6px 8px; font-size:13px; border-radius:4px; margin-bottom:2px }
 .agenda-item.active { background:var(--pb); color:var(--p); font-weight:600 }
 .agenda-item.done { color:var(--s) }

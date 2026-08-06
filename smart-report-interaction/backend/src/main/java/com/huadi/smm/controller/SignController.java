@@ -30,9 +30,14 @@ public class SignController {
 
     @PostMapping("/in")
     public Result<?> signIn(@RequestBody Map<String, Object> body) {
-        Long meetingId = Long.valueOf(body.get("meetingId").toString());
-        Long userId = Long.valueOf(body.get("userId").toString());
-        Integer signType = (Integer) body.getOrDefault("signType", 2);
+        Object meetingIdRaw = body.get("meetingId");
+        Object userIdRaw = body.get("userId");
+        if (meetingIdRaw == null || userIdRaw == null) {
+            return Result.fail(400, "参数缺失");
+        }
+        Long meetingId = Long.valueOf(meetingIdRaw.toString());
+        Long userId = Long.valueOf(userIdRaw.toString());
+        Integer signType = body.get("signType") != null ? Integer.valueOf(body.get("signType").toString()) : 2;
 
         SignService.Result sr = signService.signIn(meetingId, userId, signType);
         if (!sr.success) {
@@ -56,7 +61,7 @@ public class SignController {
         int normal = signService.countByStatus(meetingId, 0);
         int late = signService.countByStatus(meetingId, 1);
         int signed = normal + late;
-        int absent = shouldAttend - signed;
+        int absent = Math.max(0, shouldAttend - signed);
 
         List<String> userIds = records.stream().map(SignIn::getUserId).distinct().collect(Collectors.toList());
         Map<String, String> nameMap = new HashMap<>();

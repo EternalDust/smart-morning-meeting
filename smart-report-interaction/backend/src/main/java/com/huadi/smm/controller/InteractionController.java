@@ -30,6 +30,9 @@ public class InteractionController {
 
     @PostMapping("/message")
     public Result<?> sendMessage(@RequestBody Interaction msg) {
+        if (msg.getMeetingId() == null || msg.getUserId() == null || msg.getContent() == null || msg.getContent().trim().isEmpty()) {
+            return Result.fail(400, "参数缺失");
+        }
         try {
             Interaction result = interactionService.sendMessage(msg);
             try {

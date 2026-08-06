@@ -53,11 +53,12 @@ public class ReportService {
 
     public SpeechRecord updateSpeech(Long id, String content, String keyPoints) {
         SpeechRecord record = speechMapper.selectById(id);
-        if (record != null) {
-            record.setContent(content);
-            record.setKeyPoints(keyPoints);
-            speechMapper.updateById(record);
+        if (record == null) {
+            throw new RuntimeException("发言记录不存在");
         }
+        record.setContent(content);
+        record.setKeyPoints(keyPoints);
+        speechMapper.updateById(record);
         return record;
     }
 

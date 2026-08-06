@@ -39,7 +39,7 @@
           <h3>签到记录</h3>
           <span class="count">已签 {{ stats.signed }} / {{ stats.shouldAttend }}</span>
         </div>
-        <div class="record-scroll">
+        <div class="record-scroll" v-loading="loading">
           <div v-for="r in records" :key="r.id" class="sign-row">
             <el-avatar :size="28" style="flex-shrink:0">{{ getUserName(r.userId).charAt(0) }}</el-avatar>
             <span class="sign-name">{{ getUserName(r.userId) }}</span>
@@ -82,6 +82,7 @@ const userName = computed(() => {
 })
 const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
 const signing = ref(false)
+const loading = ref(false)
 const alreadySigned = ref(false)
 const records = ref([])
 const nameMap = ref({})
@@ -91,16 +92,19 @@ const showQR = ref(false)
 const qrCanvas = ref(null)
 
 const loadData = async () => {
+  loading.value = true
   try {
-    const res = await getSignList(meeting.id)
-    records.value = res.data.records || []
-    nameMap.value = res.data.nameMap || {}
-    stats.normal = res.data.normal; stats.late = res.data.late
-    stats.absent = res.data.absent; stats.shouldAttend = res.data.shouldAttend
-    stats.signed = res.data.signed
-    alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
-  } catch {}
-  try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
+    try {
+      const res = await getSignList(meeting.id)
+      records.value = res.data.records || []
+      nameMap.value = res.data.nameMap || {}
+      stats.normal = res.data.normal; stats.late = res.data.late
+      stats.absent = res.data.absent; stats.shouldAttend = res.data.shouldAttend
+      stats.signed = res.data.signed
+      alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
+    } catch {}
+    try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
+  } finally { loading.value = false }
 }
 
 const getUserName = (uid) => nameMap.value[uid] || uid

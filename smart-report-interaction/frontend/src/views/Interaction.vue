@@ -9,7 +9,7 @@
 
     <div class="content">
       <div class="chat-area">
-        <div class="chat-stream" ref="chatStream">
+        <div class="chat-stream" ref="chatStream" v-loading="loading">
           <div v-for="m in messages" :key="m.id" class="chat-msg">
             <el-avatar :size="28" style="flex-shrink:0">{{ getInterName(m.userId).charAt(0) }}</el-avatar>
             <div class="chat-body">
@@ -26,6 +26,7 @@
               <el-button link type="primary" size="small" @click="replyTo(m)">回复</el-button>
             </div>
           </div>
+          <div v-if="!loading && messages.length === 0" class="chat-empty">暂无互动消息</div>
         </div>
 
         <div class="chat-compose">
@@ -104,16 +105,19 @@ const voteOption = ref('')
 const voteOptions = ref([])
 
 const loadData = async () => {
+  loading.value = true
   try {
-    const res = await getInteractionList(meeting.id)
-    messages.value = res.data.messages || []
-    interNameMap.value = res.data.nameMap || {}
-  } catch {}
-  try {
-    const s = await getSignList(meeting.id)
-    allAttendees.value = s.data.nameMap || {}
-  } catch {}
-  try { const tp = await getTimePattern(); timePattern.value = tp.data || [] } catch {}
+    try {
+      const res = await getInteractionList(meeting.id)
+      messages.value = res.data.messages || []
+      interNameMap.value = res.data.nameMap || {}
+    } catch {}
+    try {
+      const s = await getSignList(meeting.id)
+      allAttendees.value = s.data.nameMap || {}
+    } catch {}
+    try { const tp = await getTimePattern(); timePattern.value = tp.data || [] } catch {}
+  } finally { loading.value = false }
 }
 
 const getInterName = (uid) => interNameMap.value[uid] || allAttendees.value[uid] || uid
@@ -129,6 +133,7 @@ const send = async () => {
   } catch {}
 }
 
+const loading = ref(false)
 const aiReplyingId = ref(null)
 
 const aiReplyTo = async (m) => {
@@ -173,6 +178,7 @@ onMounted(loadData)
 .content { flex:1; display:flex; gap:16px; min-height:0; overflow:hidden }
 .chat-area { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden }
 .chat-stream { flex:1; overflow-y:auto; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:10px; margin-bottom:10px }
+.chat-empty { text-align:center; color:#94A3B8; padding:40px 0; font-size:13px }
 .chat-msg { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid #F1F5F9 }
 .chat-msg:last-child { border-bottom:none }
 .chat-body { flex:1; min-width:0 }

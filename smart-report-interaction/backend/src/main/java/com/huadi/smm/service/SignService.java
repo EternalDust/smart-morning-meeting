@@ -78,12 +78,6 @@ public class SignService {
         return attendeeMapper.selectCount(qw).intValue();
     }
 
-    public int countSignedIn(Long meetingId) {
-        LambdaQueryWrapper<SignIn> qw = new LambdaQueryWrapper<>();
-        qw.eq(SignIn::getMeetingId, meetingId);
-        return signInMapper.selectCount(qw).intValue();
-    }
-
     public int countByStatus(Long meetingId, Integer status) {
         LambdaQueryWrapper<SignIn> qw = new LambdaQueryWrapper<>();
         qw.eq(SignIn::getMeetingId, meetingId).eq(SignIn::getSignStatus, status);

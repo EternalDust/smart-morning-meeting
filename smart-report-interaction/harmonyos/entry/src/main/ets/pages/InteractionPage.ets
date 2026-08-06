@@ -19,16 +19,24 @@ export struct InteractionPageContent {
   @State voteTitle: string = ''
   @State voteOptions: string = ''
   @State aiReplyingId: number = 0
+  @State replyTargetId: number = 0
+  @State replyText: string = ''
   private ws: webSocket.WebSocket | null = null
+  private wsDestroyed: boolean = false
 
   async aboutToAppear() {
     this.userId = await TokenManager.getUserId()
     this.userName = await TokenManager.getUserName()
+    this.wsDestroyed = false
     await this.loadData()
     this.connectWebSocket()
   }
 
-  aboutToDisappear() { this.ws?.close() }
+  aboutToDisappear() {
+    this.wsDestroyed = true
+    this.ws?.close()
+    this.ws = null
+  }
 
   async loadData() {
     this.isLoading = true
@@ -55,7 +63,10 @@ export struct InteractionPageContent {
     this.ws.on('message', (err: Error, value: string) => {
       try { const msg = JSON.parse(value as string); if (msg.type === 'interaction') this.loadData() } catch (e) {}
     })
-    this.ws.on('close', (err: Error, value: string) => { setTimeout(() => this.connectWebSocket(), 3000) })
+    this.ws.on('close', (err: Error, value: string) => {
+      if (this.wsDestroyed) return
+      setTimeout(() => this.connectWebSocket(), 3000)
+    })
   }
 
   async sendMessage() {
@@ -88,6 +99,22 @@ export struct InteractionPageContent {
     } catch (e) {} finally { this.aiReplyingId = 0 }
   }
 
+  openReply(item: InteractionMessage) {
+    this.replyTargetId = item.id
+    this.replyText = ''
+  }
+
+  async submitReply() {
+    const text = this.replyText.trim()
+    if (!text) return
+    try {
+      await ApiService.replyMessage(this.replyTargetId, text)
+      this.replyTargetId = 0
+      this.replyText = ''
+      await this.loadData()
+    } catch (e) {}
+  }
+
   build() {
     Stack() {
       Column() {
@@ -118,6 +145,10 @@ export struct InteractionPageContent {
                         .enabled(this.aiReplyingId !== item.id)
                         .backgroundColor('#2563EB').borderRadius(6)
                         .onClick(() => this.aiReply(item))
+                      Button('回复')
+                        .height(28).fontSize(12).margin({ top: 6, left: 8 })
+                        .backgroundColor('#10B981').borderRadius(6)
+                        .onClick(() => this.openReply(item))
                     }.width('100%').alignItems(HorizontalAlign.Start)
                   }
                   if (item.reply) {
@@ -182,6 +213,29 @@ export struct InteractionPageContent {
         .backgroundColor('rgba(0,0,0,0.4)')
         .justifyContent(FlexAlign.Center)
         .onClick(() => this.showVote = false)
+      }
+
+      if (this.replyTargetId > 0) {
+        Column() {
+          Column() {
+            Text('回复消息').fontSize(16).fontWeight(FontWeight.Bold).margin({ bottom: 12 })
+            TextInput({ placeholder: '输入回复内容', text: this.replyText })
+              .height(44).width('100%').backgroundColor('#F1F5F9').borderRadius(8)
+              .onChange((v: string) => this.replyText = v)
+            Row() {
+              Button('取消').height(40).layoutWeight(1).backgroundColor('#F1F5F9').borderRadius(8)
+                .onClick(() => { this.replyTargetId = 0; this.replyText = '' })
+              Button('发送').height(40).layoutWeight(1).backgroundColor('#10B981').borderRadius(8)
+                .margin({ left: 8 })
+                .onClick(() => this.submitReply())
+            }.width('100%').margin({ top: 12 })
+          }
+          .padding(20).backgroundColor('#FFFFFF').borderRadius(12).width('85%')
+        }
+        .width('100%').height('100%')
+        .backgroundColor('rgba(0,0,0,0.4)')
+        .justifyContent(FlexAlign.Center)
+        .onClick(() => { this.replyTargetId = 0; this.replyText = '' })
       }
     }
     .width('100%').height('100%')

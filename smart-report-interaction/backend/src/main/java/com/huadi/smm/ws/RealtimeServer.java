@@ -1,5 +1,7 @@
 package com.huadi.smm.ws;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
@@ -11,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @ServerEndpoint("/api/meeting/realtime/push/{meetingId}")
 public class RealtimeServer {
+
+    private static final Logger log = LoggerFactory.getLogger(RealtimeServer.class);
 
     private static final ConcurrentHashMap<Long, ConcurrentHashMap<String, Session>> rooms = new ConcurrentHashMap<>();
 
@@ -28,9 +32,10 @@ public class RealtimeServer {
     @OnError
     public void onError(Session session, @PathParam("meetingId") Long meetingId, Throwable error) {
         removeSession(meetingId, session.getId());
-        error.printStackTrace();
+        log.warn("WebSocket 连接异常 meetingId={}: {}", meetingId, error.getMessage());
     }
 
+    // 纯服务端推送，客户端不上行业务消息
     @OnMessage
     public void onMessage(String message, Session session) {
     }
