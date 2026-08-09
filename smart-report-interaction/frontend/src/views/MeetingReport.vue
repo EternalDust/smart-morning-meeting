@@ -14,21 +14,10 @@
           </div>
         </div>
 
-        <div class="voice-zone">
-          <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:24px">🎙</span>
-            <div>
-              <div class="vz-title">语音实时转写</div>
-              <div style="font-size:12px;color:var(--ts)">当前主讲人：{{ currentSpeaker }}</div>
-            </div>
-            <span style="margin-left:auto;font-size:11px;color:var(--ts)">语音接入后自动转写</span>
-          </div>
-        </div>
-
         <div class="section-label">发言记录</div>
         <div class="speech-list">
           <div v-for="r in records" :key="r.id" class="speech-row">
-            <el-avatar :size="24" style="flex-shrink:0">{{ getSpeakerName(r.speakerId).charAt(0) }}</el-avatar>
+            <el-avatar :size="24" style="flex-shrink:0">{{ (getSpeakerName(r.speakerId) || '?').charAt(0) }}</el-avatar>
             <div class="speech-body">
               <div class="speech-meta"><strong>{{ getSpeakerName(r.speakerId) }}</strong> · {{ r.speechTime }}</div>
               <p>{{ r.content }}</p>
@@ -45,7 +34,7 @@
         </div>
 
         <div class="side-card" v-if="weeklyTrend.length">
-          <div class="sc-title">周度趋势</div>
+          <div class="sc-title">全平台周度趋势</div>
           <div v-for="w in weeklyTrend.slice(-4)" :key="w.meetingWeek" style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0">
             <span>{{ w.meetingWeek }}</span>
             <span>出勤{{ w.avgAttendRate }}%</span>
@@ -85,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSpeechList, getSummary, aiGenerateSummary } from '../api/report'
 import { getMeetingAnalytics, getWeeklyTrend } from '../api/analytics'
@@ -97,8 +86,9 @@ const userStore = useUserStore()
 const meeting = store.currentMeeting
 
 const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
-const currentAgenda = ref(2)
-const currentSpeaker = computed(() => userStore.userName || '参会用户')
+const savedAgenda = Number(sessionStorage.getItem('currentAgenda'))
+const currentAgenda = ref(Number.isInteger(savedAgenda) && savedAgenda >= 1 && savedAgenda <= agendas.length ? savedAgenda : 2)
+watch(currentAgenda, (v) => sessionStorage.setItem('currentAgenda', String(v)))
 const speechStats = ref(null)
 const weeklyTrend = ref([])
 const records = ref([])
@@ -147,8 +137,6 @@ onMounted(loadData)
 .step.active { background:var(--p); color:#fff }
 .step.done { background:var(--sb); color:var(--s) }
 .step-num { font-weight:700; margin-right:4px }
-.voice-zone { border:2px dashed var(--bd); border-radius:12px; padding:12px 16px; margin-bottom:14px; flex-shrink:0; background:var(--pb) }
-.vz-title { font-size:15px; font-weight:700; color:var(--p) }
 .section-label { font-size:13px; font-weight:600; margin-bottom:8px; flex-shrink:0 }
 .speech-list { flex:1; overflow-y:auto; background:#fff; border:1px solid var(--bd); border-radius:8px; padding:8px 12px }
 .speech-row { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid #F1F5F9 }

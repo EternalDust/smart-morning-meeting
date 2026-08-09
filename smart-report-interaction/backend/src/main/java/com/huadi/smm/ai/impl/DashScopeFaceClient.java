@@ -31,7 +31,7 @@ public class DashScopeFaceClient implements FaceClient {
     }
 
     @Override
-    public FaceResult recognize(byte[] image, String fileName) {
+    public FaceResult recognize(byte[] image, String fileName, String expectedUserId) {
         String dataUrl = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(image);
 
         HttpHeaders headers = new HttpHeaders();
@@ -52,7 +52,7 @@ public class DashScopeFaceClient implements FaceClient {
         content.add(imagePart);
         Map<String, Object> textPart = new HashMap<>();
         textPart.put("type", "text");
-        textPart.put("text", "请分析这张照片：1) 是否包含清晰的人脸；2) 如有人脸，描述人物的性别、年龄段等可识别特征。");
+        textPart.put("text", "请分析这张照片：1) 是否包含清晰的人脸；2) 是否与登录用户（工号 " + (expectedUserId == null ? "未知" : expectedUserId) + "）的样貌吻合。只输出 吻合/不吻合 和一句简要说明。");
         content.add(textPart);
         message.put("content", content);
         body.put("messages", Collections.singletonList(message));

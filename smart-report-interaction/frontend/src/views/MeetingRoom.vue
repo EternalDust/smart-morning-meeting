@@ -24,7 +24,7 @@
         <div class="mr-panel">
           <h3>签到</h3>
           <div class="sign-user">
-            <el-avatar :size="32" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
+            <el-avatar :size="32" style="background:var(--p)">{{ (userStore.userName || '?').charAt(0) }}</el-avatar>
             <span>{{ userStore.userName }}</span>
           </div>
           <el-button type="primary" size="small" @click="doSignIn" style="width:100%" :disabled="signing">一键签到</el-button>
@@ -40,6 +40,7 @@
           <h3>会议质量</h3>
           <div class="quality-score">{{ meetingQuality.qualityScore }}</div>
           <div class="quality-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
+          <div class="quality-note">综合评分，结合出勤、发言、互动等维度测算</div>
         </div>
       </div>
 
@@ -55,8 +56,8 @@
           </div>
 
           <div v-if="userStore.isLoggedIn && currentAgenda >= 2" class="speaker-bar">
-            <el-avatar :size="24" style="background:var(--p)">{{ userStore.userName.charAt(0) }}</el-avatar>
-            <strong>{{ userStore.userName }}</strong>
+            <el-avatar :size="24" style="background:var(--p)">{{ (currentSpeaker || '?').charAt(0) }}</el-avatar>
+            <strong>{{ currentSpeaker }}</strong>
             <span style="color:var(--ts);font-size:12px">当前汇报人</span>
           </div>
 
@@ -64,7 +65,7 @@
             <label class="field-label">发言要点</label>
             <el-input v-model="speechContent" type="textarea" :rows="3" placeholder="录入发言人要点或会议摘要..." style="margin-bottom:8px" />
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px">
-              <el-button size="small" :type="recording ? 'danger' : 'primary'" @click="startVoiceTranscribe" :loading="transcribing">{{ recording ? '停止并转写' : '语音转写' }}</el-button>
+              <el-button size="small" :type="recording ? 'danger' : 'primary'" @click="startVoiceTranscribe" :loading="transcribing">{{ recording ? `停止并转写 (${recSeconds}s)` : '语音转写' }}</el-button>
               <el-button size="small" type="primary" @click="saveSpeech">保存发言</el-button>
             </div>
           </template>
@@ -72,7 +73,7 @@
           <div class="record-list">
             <div class="section-title">汇报记录</div>
             <div v-for="r in speechRecords" :key="r.id" class="record-item">
-              <el-avatar :size="20" style="flex-shrink:0">{{ getSpeakerName(r.speakerId).charAt(0) }}</el-avatar>
+              <el-avatar :size="20" style="flex-shrink:0">{{ (getSpeakerName(r.speakerId) || '?').charAt(0) }}</el-avatar>
               <div class="record-body">
                 <div><strong>{{ getSpeakerName(r.speakerId) }}</strong> · <span class="record-time">{{ r.speechTime }}</span></div>
                 <p>{{ r.content }}</p>
@@ -94,13 +95,19 @@
           </div>
           <div class="msg-stream">
             <div v-for="m in filteredMessages" :key="m.id" class="msg-item">
-              <el-avatar :size="20">{{ getInterUserName(m.userId).charAt(0) }}</el-avatar>
+              <el-avatar :size="20">{{ (getInterUserName(m.userId) || '?').charAt(0) }}</el-avatar>
               <div class="msg-body">
                 <div class="msg-hd"><strong>{{ getInterUserName(m.userId) }}</strong> · {{ m.createTime }}</div>
-                <div>{{ m.content }}</div>
+                <template v-if="m.interactType === 3">
+                  <div>{{ pollTitle(m) }}</div>
+                  <PollOptions :poll="m" :votes="interVoteCasts" :userId="String(userStore.userId || '')" @vote="(idx) => castVote(m, idx)" />
+                </template>
+                <template v-else>
+                  <div>{{ m.content }}</div>
+                </template>
                 <div v-if="m.reply" class="msg-reply"><span>回复</span>{{ m.reply }}</div>
               </div>
-              <el-button v-if="!m.reply" link type="primary" size="small" @click="replyTo(m)">回复</el-button>
+              <el-button v-if="!m.reply && isAdmin" link type="primary" size="small" @click="openReply(m)">回复</el-button>
             </div>
           </div>
           <div class="compose-bar">
@@ -131,6 +138,14 @@
         <p style="font-size:12px;color:var(--ts);margin-top:8px">手机扫码即可签到</p>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="showReplyDialog" title="回复互动消息" width="360px">
+      <el-input v-model="replyText" type="textarea" :rows="3" placeholder="输入回复内容..." />
+      <template #footer>
+        <el-button @click="showReplyDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!replyText" @click="submitReply">回复</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -146,6 +161,7 @@ import { transcribeAudio } from '../api/asr'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
+import PollOptions from '../components/PollOptions.vue'
 
 const store = useMeetingStore()
 const userStore = useUserStore()
@@ -155,7 +171,18 @@ const { lastMessage, connect } = useWebSocket(meeting.id)
 connect()
 
 const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
-const currentAgenda = ref(2)
+const savedAgenda = Number(sessionStorage.getItem('currentAgenda'))
+const currentAgenda = ref(Number.isInteger(savedAgenda) && savedAgenda >= 1 && savedAgenda <= agendas.length ? savedAgenda : 2)
+watch(currentAgenda, (v) => sessionStorage.setItem('currentAgenda', String(v)))
+const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
+const currentSpeaker = computed(() => {
+  const list = speechRecords.value
+  for (let i = list.length - 1; i >= 0; i--) {
+    const name = speechNameMap.value[list[i].speakerId]
+    if (name) return name
+  }
+  return userStore.userName || '参会用户'
+})
 
 const signing = ref(false)
 const signStats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
@@ -168,8 +195,20 @@ const speechRecords = ref([])
 const speechNameMap = ref({})
 const recording = ref(false)
 const transcribing = ref(false)
+const recSeconds = ref(0)
+const MAX_REC_SEC = 30
 let mediaRecorder = null
 let audioChunks = []
+let recTimer = null
+
+const startRecTimer = () => {
+  recSeconds.value = MAX_REC_SEC
+  clearInterval(recTimer)
+  recTimer = setInterval(() => {
+    recSeconds.value--
+    if (recSeconds.value <= 0) stopVoiceTranscribe()
+  }, 1000)
+}
 
 const interFilter = ref(0)
 const interType = ref(1)
@@ -177,6 +216,9 @@ const interContent = ref('')
 const interMessages = ref([])
 const interNameMap = ref({})
 const interStats = reactive({ questions: 0, feedback: 0, votes: 0, replied: 0 })
+const showReplyDialog = ref(false)
+const replyTargetId = ref(null)
+const replyText = ref('')
 
 const loadSign = async () => {
   const res = await getSignList(meeting.id)
@@ -215,7 +257,11 @@ const withTimeout = (promise, ms) => Promise.race([
 
 const startVoiceTranscribe = async () => {
   if (recording.value) { stopVoiceTranscribe(); return }
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { await fallbackTranscribe(); return }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    ElMessage.info('未获取到麦克风，使用模拟语音')
+    await fallbackTranscribe()
+    return
+  }
   try {
     const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ audio: true }), 3000)
     audioChunks = []
@@ -227,11 +273,18 @@ const startVoiceTranscribe = async () => {
     }
     mediaRecorder.start()
     recording.value = true
-    ElMessage.success('正在录音，再次点击结束并转写')
-  } catch { await fallbackTranscribe() }
+    startRecTimer()
+    ElMessage.success('正在录音，最长 30 秒，再次点击或到时自动转写')
+  } catch {
+    ElMessage.info('未获取到麦克风，使用模拟语音')
+    await fallbackTranscribe()
+  }
 }
 
 const stopVoiceTranscribe = () => {
+  clearInterval(recTimer)
+  recTimer = null
+  if (!recording.value) return
   recording.value = false
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
 }
@@ -254,7 +307,7 @@ const uploadAudio = async (blob) => {
 
 const loadInteraction = async () => {
   const [list, stats] = await Promise.all([
-    getInteractionList(meeting.id, interFilter.value || undefined),
+    getInteractionList(meeting.id),
     getStats(meeting.id)
   ])
   interMessages.value = list.data.messages || []
@@ -263,9 +316,24 @@ const loadInteraction = async () => {
 }
 
 const getInterUserName = (uid) => interNameMap.value[uid] || uid
-const filteredMessages = computed(() =>
-  interFilter.value === 0 ? interMessages.value : interMessages.value.filter(m => m.interactType === interFilter.value)
-)
+const filteredMessages = computed(() => {
+  const list = interMessages.value.filter(m => m.interactType !== 4)
+  if (interFilter.value === 0) return list
+  return list.filter(m => m.interactType === interFilter.value)
+})
+const interVoteCasts = computed(() => interMessages.value.filter(m => m.interactType === 4))
+const pollTitle = (m) => {
+  const first = String(m.content || '').split('\n')[0]
+  return first.startsWith('【投票】') ? first : (first || '投票')
+}
+const castVote = async (poll, idx) => {
+  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
+  try {
+    await sendMessage({ meetingId: meeting.id, userId: String(userStore.userId), content: `VOTE:${poll.id}:${idx}`, interactType: 4 })
+    ElMessage.success('投票成功')
+    await loadInteraction()
+  } catch {}
+}
 
 const sendInter = async () => {
   const uid = userStore.userId || '9999'
@@ -273,9 +341,21 @@ const sendInter = async () => {
   try { await sendMessage({ meetingId: meeting.id, userId: uid, content: interContent.value, interactType: interType.value }); ElMessage.success('已发送'); interContent.value = ''; await loadInteraction() } catch {}
 }
 
-const replyTo = async (m) => {
-  const reply = prompt('回复内容：')
-  if (reply) { await replyMessage(m.id, reply); await loadInteraction() }
+const openReply = (m) => {
+  replyTargetId.value = m.id
+  replyText.value = ''
+  showReplyDialog.value = true
+}
+
+const submitReply = async () => {
+  if (!replyTargetId.value || !replyText.value) return
+  try {
+    await replyMessage(replyTargetId.value, replyText.value)
+    ElMessage.success('已回复')
+    showReplyDialog.value = false
+    replyText.value = ''
+    await loadInteraction()
+  } catch {}
 }
 
 watch(showQR, async (v) => {
@@ -305,6 +385,7 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction() })
 .sign-stats { display:flex; gap:8px; font-size:12px; margin-top:6px; color:var(--ts) }
 .quality-score { font-size:32px; font-weight:700; color:var(--p); text-align:center }
 .quality-meta { font-size:11px; color:var(--ts); text-align:center; margin-top:4px }
+.quality-note { font-size:10px; color:var(--ts); text-align:center; margin-top:6px; opacity:.85 }
 .section-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
 .section-hd h3 { font-size:14px; margin:0 }
 .speaker-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:var(--pb); border-radius:6px }

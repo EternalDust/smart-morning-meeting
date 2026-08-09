@@ -10,23 +10,29 @@
     <div class="content">
       <div class="chat-area">
         <div class="chat-stream" ref="chatStream" v-loading="loading">
-          <div v-for="m in messages" :key="m.id" class="chat-msg">
-            <el-avatar :size="28" style="flex-shrink:0">{{ getInterName(m.userId).charAt(0) }}</el-avatar>
+          <div v-for="m in chatMessages" :key="m.id" class="chat-msg">
+            <el-avatar :size="28" style="flex-shrink:0">{{ (getInterName(m.userId) || '?').charAt(0) }}</el-avatar>
             <div class="chat-body">
               <div class="chat-hd">
                 <strong>{{ getInterName(m.userId) }}</strong>
                 <el-tag v-if="m.interactType === 3" size="small" type="warning">投票</el-tag>
                 <span class="chat-time">{{ m.createTime }}</span>
               </div>
-              <div class="chat-content">{{ m.content }}</div>
+              <template v-if="m.interactType === 3">
+                <div class="chat-content">{{ pollTitle(m) }}</div>
+                <PollOptions :poll="m" :votes="voteCasts" :userId="String(userStore.userId || '')" @vote="(idx) => castVote(m, idx)" />
+              </template>
+              <template v-else>
+                <div class="chat-content">{{ m.content }}</div>
+              </template>
               <div v-if="m.reply" class="chat-reply"><span>回复</span>{{ m.reply }}</div>
             </div>
             <div v-if="!m.reply && isAdmin" class="chat-actions">
               <el-button link type="primary" size="small" :loading="aiReplyingId === m.id" @click="aiReplyTo(m)">AI 答复</el-button>
-              <el-button link type="primary" size="small" @click="replyTo(m)">回复</el-button>
+              <el-button link type="primary" size="small" @click="openReply(m)">回复</el-button>
             </div>
           </div>
-          <div v-if="!loading && messages.length === 0" class="chat-empty">暂无互动消息</div>
+          <div v-if="!loading && chatMessages.length === 0" class="chat-empty">暂无互动消息</div>
         </div>
 
         <div class="chat-compose">
@@ -41,16 +47,16 @@
 
       <div class="people-panel">
         <div class="pp-title">参会人员</div>
-        <div class="pp-count">{{ Object.keys(allAttendees).length }} 人在线</div>
+        <div class="pp-count">参会 {{ Object.keys(allAttendees).length }} 人</div>
         <div class="pp-list">
           <div class="pp-item" v-for="(name, uid) in allAttendees" :key="uid" :class="{ host: String(uid).startsWith('2') }">
-            <el-avatar :size="24" style="flex-shrink:0;font-size:11px">{{ name.charAt(0) }}</el-avatar>
+            <el-avatar :size="24" style="flex-shrink:0;font-size:11px">{{ (name || '?').charAt(0) }}</el-avatar>
             <span>{{ name }}</span>
             <el-tag v-if="String(uid).startsWith('2')" size="small" type="warning" style="margin-left:auto">主持人</el-tag>
           </div>
         </div>
         <div v-if="timePattern.length" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);font-size:11px">
-          <div style="font-weight:600;margin-bottom:4px">时段准时率</div>
+          <div style="font-weight:600;margin-bottom:4px">全平台时段准时率</div>
           <div v-for="t in timePattern" :key="t.period" style="display:flex;justify-content:space-between;padding:2px 0">
             <span>{{ t.period }}</span>
             <span :style="{color: t.punctualRate > 60 ? 'var(--s)' : 'var(--d)', fontWeight:'700'}">{{ t.punctualRate }}%</span>
@@ -70,6 +76,14 @@
         <el-button type="primary" @click="submitVote" :disabled="!voteTitle || voteOptions.length < 2">发起投票</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showReplyDialog" title="回复互动消息" width="360px">
+      <el-input v-model="replyText" type="textarea" :rows="3" placeholder="输入回复内容..." />
+      <template #footer>
+        <el-button @click="showReplyDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!replyText" @click="submitReply">回复</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -82,6 +96,7 @@ import { getTimePattern } from '../api/analytics'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
+import PollOptions from '../components/PollOptions.vue'
 
 const store = useMeetingStore()
 const userStore = useUserStore()
@@ -103,6 +118,9 @@ const showVoteDialog = ref(false)
 const voteTitle = ref('')
 const voteOption = ref('')
 const voteOptions = ref([])
+const showReplyDialog = ref(false)
+const replyTargetId = ref(null)
+const replyText = ref('')
 
 const loadData = async () => {
   loading.value = true
@@ -121,6 +139,22 @@ const loadData = async () => {
 }
 
 const getInterName = (uid) => interNameMap.value[uid] || allAttendees.value[uid] || uid
+
+const chatMessages = computed(() => messages.value.filter(m => m.interactType !== 4))
+const voteCasts = computed(() => messages.value.filter(m => m.interactType === 4))
+const pollTitle = (m) => {
+  const first = String(m.content || '').split('\n')[0]
+  return first.startsWith('【投票】') ? first : (first || '投票')
+}
+
+const castVote = async (poll, idx) => {
+  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
+  try {
+    await sendMessage({ meetingId: meeting.id, userId: String(userStore.userId), content: `VOTE:${poll.id}:${idx}`, interactType: 4 })
+    ElMessage.success('投票成功')
+    await loadData()
+  } catch {}
+}
 
 const send = async () => {
   if (!msgContent.value) { ElMessage.warning('请输入内容'); return }
@@ -145,9 +179,21 @@ const aiReplyTo = async (m) => {
   } catch {} finally { aiReplyingId.value = null }
 }
 
-const replyTo = async (m) => {
-  const reply = prompt('回复内容：')
-  if (reply) { await replyMessage(m.id, reply); await loadData() }
+const openReply = (m) => {
+  replyTargetId.value = m.id
+  replyText.value = ''
+  showReplyDialog.value = true
+}
+
+const submitReply = async () => {
+  if (!replyTargetId.value || !replyText.value) return
+  try {
+    await replyMessage(replyTargetId.value, replyText.value)
+    ElMessage.success('已回复')
+    showReplyDialog.value = false
+    replyText.value = ''
+    await loadData()
+  } catch {}
 }
 
 const addVoteOption = () => {

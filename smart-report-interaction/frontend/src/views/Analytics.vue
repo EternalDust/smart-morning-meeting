@@ -6,7 +6,7 @@
 
     <div class="content">
       <div class="panel">
-        <h3>会议趋势</h3>
+        <h3>全平台会议趋势</h3>
         <div ref="trendChart" style="width:100%;height:320px"></div>
       </div>
 
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getMeetingTrend, getDepartmentRanking } from '../api/analytics'
 
@@ -51,6 +51,13 @@ const trendChart = ref(null)
 const deptChart = ref(null)
 const departments = ref([])
 const meetings = ref([])
+let trendChartInstance = null
+let deptChartInstance = null
+
+const onResize = () => {
+  if (trendChartInstance) trendChartInstance.resize()
+  if (deptChartInstance) deptChartInstance.resize()
+}
 
 onMounted(async () => {
   const [trendData, deptData] = await Promise.all([
@@ -64,13 +71,22 @@ onMounted(async () => {
   await nextTick()
   renderTrendChart()
   renderDeptChart()
+  window.addEventListener('resize', onResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+  if (trendChartInstance) trendChartInstance.dispose()
+  if (deptChartInstance) deptChartInstance.dispose()
+  trendChartInstance = null
+  deptChartInstance = null
 })
 
 function renderTrendChart() {
   if (!trendChart.value) return
-  const chart = echarts.init(trendChart.value)
+  trendChartInstance = echarts.init(trendChart.value)
   const list = meetings.value
-  chart.setOption({
+  trendChartInstance.setOption({
     tooltip: { trigger: 'axis' },
     legend: { data: ['出勤率', '发言数', '互动数'] },
     xAxis: { type: 'category', data: list.map(m => m.meetingDate || m.meetingTitle) },
@@ -84,14 +100,13 @@ function renderTrendChart() {
       { name: '互动数', type: 'line', yAxisIndex: 1, data: list.map(m => m.interactionCount), smooth: true }
     ]
   })
-  window.addEventListener('resize', () => chart.resize())
 }
 
 function renderDeptChart() {
   if (!deptChart.value) return
-  const chart = echarts.init(deptChart.value)
+  deptChartInstance = echarts.init(deptChart.value)
   const list = departments.value
-  chart.setOption({
+  deptChartInstance.setOption({
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: list.map(d => d.department) },
     yAxis: { type: 'value', name: '出勤率(%)', max: 100 },
@@ -100,6 +115,5 @@ function renderDeptChart() {
       itemStyle: { color: getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#0891B2' }
     }]
   })
-  window.addEventListener('resize', () => chart.resize())
 }
 </script>

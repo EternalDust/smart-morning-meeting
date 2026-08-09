@@ -9,7 +9,7 @@
     <div class="content">
       <div class="left-panel">
         <div class="user-card">
-          <el-avatar :size="56" style="background:var(--p);font-size:24px">{{ userName.charAt(0) }}</el-avatar>
+          <el-avatar :size="56" style="background:var(--p);font-size:24px">{{ (userName || '?').charAt(0) }}</el-avatar>
           <div class="user-name">{{ userName }}</div>
           <div class="user-role">{{ isAdmin ? '管理员' : '参会人员' }}</div>
         </div>
@@ -18,6 +18,7 @@
           <div class="q-num">{{ meetingQuality.qualityScore }}</div>
           <div class="q-label">会议质量评分</div>
           <div class="q-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
+          <div class="q-note">综合评分，结合出勤、发言、互动等维度测算</div>
           <div v-if="meetingQuality.isAnomaly === 1" class="anomaly-tag">异常</div>
         </div>
 
@@ -42,7 +43,7 @@
         </div>
         <div class="record-scroll" v-loading="loading">
           <div v-for="r in records" :key="r.id" class="sign-row">
-            <el-avatar :size="28" style="flex-shrink:0">{{ getUserName(r.userId).charAt(0) }}</el-avatar>
+            <el-avatar :size="28" style="flex-shrink:0">{{ (getUserName(r.userId) || '?').charAt(0) }}</el-avatar>
             <span class="sign-name">{{ getUserName(r.userId) }}</span>
             <el-tag :type="r.signStatus === 0 ? 'success' : 'warning'" size="small">{{ r.signStatus === 0 ? '准时' : '迟到' }}</el-tag>
             <span class="sign-time">{{ r.signTime }}</span>
@@ -57,11 +58,23 @@
         <p style="font-size:12px;color:var(--ts);margin-top:8px">参会人员扫描二维码签到</p>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="showFaceDialog" title="人脸识别确认" width="300px" center>
+      <div style="text-align:center">
+        <img v-if="facePreviewUrl" :src="facePreviewUrl" style="width:100%;max-height:240px;object-fit:cover;border-radius:8px" />
+        <p style="font-size:13px;margin-top:10px">确认以 <strong>{{ userName }}</strong> 的身份自动签到？</p>
+      </div>
+      <template #footer>
+        <el-button @click="retakeFace">重新拍摄</el-button>
+        <el-button type="primary" :loading="faceSigning" @click="confirmFaceSignIn">确认签到</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
@@ -72,7 +85,13 @@ import { useUserStore } from '../stores/user'
 
 const store = useMeetingStore()
 const userStore = useUserStore()
+const route = useRoute()
 const meeting = store.currentMeeting
+const meetingId = computed(() => {
+  const q = route.query.meetingId
+  const parsed = q ? Number(q) : NaN
+  return Number.isFinite(parsed) ? parsed : meeting.id
+})
 
 const userName = computed(() => {
   if (userStore.userName) return userStore.userName
@@ -93,12 +112,15 @@ const stats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed:
 const meetingQuality = ref(null)
 const showQR = ref(false)
 const qrCanvas = ref(null)
+const showFaceDialog = ref(false)
+const facePreviewUrl = ref('')
+let faceBlob = null
 
 const loadData = async () => {
   loading.value = true
   try {
     try {
-      const res = await getSignList(meeting.id)
+      const res = await getSignList(meetingId.value)
       records.value = res.data.records || []
       nameMap.value = res.data.nameMap || {}
       stats.normal = res.data.normal; stats.late = res.data.late
@@ -106,7 +128,7 @@ const loadData = async () => {
       stats.signed = res.data.signed
       alreadySigned.value = userStore.userId ? records.value.some(r => String(r.userId) === String(userStore.userId)) : false
     } catch {}
-    try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
+    try { const a = await getMeetingAnalytics(meetingId.value); meetingQuality.value = a.data } catch {}
   } finally { loading.value = false }
 }
 
@@ -115,7 +137,7 @@ const getUserName = (uid) => nameMap.value[uid] || uid
 const doSignIn = async () => {
   if (!userStore.userId) { ElMessage.warning('请先登录'); return }
   signing.value = true
-  try { await signIn(meeting.id, userStore.userId, 2); ElMessage.success('签到成功'); await loadData() } catch {}
+  try { await signIn(meetingId.value, userStore.userId, 2); ElMessage.success('签到成功'); await loadData() } catch {}
   signing.value = false
 }
 
@@ -140,27 +162,45 @@ const capturePhoto = async () => {
 }
 
 const doFaceSignIn = async () => {
-  if (faceSigning.value) return
+  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
+  if (faceSigning.value || alreadySigned.value) return
   faceSigning.value = true
   try {
     let photo
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try { photo = await capturePhoto() } catch { photo = new Blob(['mock-face'], { type: 'image/jpeg' }) }
+      try { photo = await capturePhoto() } catch { photo = new Blob(['mock-face'], { type: 'image/jpeg' }); ElMessage.info('未获取到摄像头，使用模拟人脸') }
     } else {
       photo = new Blob(['mock-face'], { type: 'image/jpeg' })
     }
-    const res = await recognizeFace(photo)
+    faceBlob = photo
+    if (facePreviewUrl.value) URL.revokeObjectURL(facePreviewUrl.value)
+    facePreviewUrl.value = URL.createObjectURL(photo)
+    showFaceDialog.value = true
+  } catch { ElMessage.error('拍照失败') } finally { faceSigning.value = false }
+}
+
+const retakeFace = () => {
+  showFaceDialog.value = false
+  doFaceSignIn()
+}
+
+const confirmFaceSignIn = async () => {
+  if (!faceBlob || faceSigning.value) return
+  faceSigning.value = true
+  try {
+    const res = await recognizeFace(faceBlob, userStore.userId)
     const f = res.data
-    if (!f.matched) { ElMessage.warning(f.message || '未识别到人脸'); return }
-    ElMessage.success(`人脸识别成功：${f.name}（${f.role}），置信度 ${Math.round(f.confidence * 100)}%`)
-    await signIn(meeting.id, f.userId, 2)
+    if (!f.matched) { ElMessage.warning(f.message || '未识别到人脸'); showFaceDialog.value = false; return }
+    ElMessage.success(`人脸识别成功：${f.name || '参会人员'}（${f.role || '参会人员'}），置信度 ${Math.round((f.confidence || 0) * 100)}%`)
+    await signIn(meetingId.value, f.userId, 3)
     ElMessage.success('已自动签到')
+    showFaceDialog.value = false
     await loadData()
   } catch { ElMessage.error('人脸识别失败') } finally { faceSigning.value = false }
 }
 
 watch(showQR, async (v) => {
-  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meeting.id}`, { width: 200, margin: 1 }) }
+  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meetingId.value}`, { width: 200, margin: 1 }) }
 })
 
 onMounted(loadData)
@@ -180,6 +220,7 @@ onMounted(loadData)
 .q-num { font-size:32px; font-weight:700; color:var(--p) }
 .q-label { font-size:12px; color:var(--ts); margin-top:2px }
 .q-meta { font-size:11px; color:var(--ts); margin-top:6px }
+.q-note { font-size:10px; color:var(--ts); margin-top:4px; opacity:.85 }
 .anomaly-tag { display:inline-block;padding:2px 10px;background:var(--db);color:var(--d);border-radius:4px;font-size:11px;font-weight:700;margin-top:6px }
 .right-panel { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden }
 .stat-row { display:flex; gap:8px; margin-bottom:16px; flex-shrink:0 }
