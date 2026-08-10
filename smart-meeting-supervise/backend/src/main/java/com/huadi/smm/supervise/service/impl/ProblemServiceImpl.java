@@ -6,6 +6,7 @@ import com.huadi.smm.supervise.mapper.ProblemMapper;
 import com.huadi.smm.supervise.service.ProblemService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import java.time.LocalDateTime;
 
 @Service
 public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem>
@@ -29,6 +30,14 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem>
         Problem problem = new Problem();
         problem.setId(id);
         problem.setStatus(status);
+        return this.updateById(problem);
+    }
+
+    @Override
+    public boolean updateDeadline(Long id, LocalDateTime deadline) {
+        Problem problem = new Problem();
+        problem.setId(id);
+        problem.setDeadline(deadline);
         return this.updateById(problem);
     }
 }

@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.huadi.smm.supervise.entity.Document;
 import com.huadi.smm.supervise.entity.Problem;
+import com.huadi.smm.supervise.entity.User;
+import com.huadi.smm.supervise.enums.CategoryEnum;
 import com.huadi.smm.supervise.mapper.DocumentMapper;
+import com.huadi.smm.supervise.mapper.UserMapper;
 import com.huadi.smm.supervise.service.DocumentService;
 import com.huadi.smm.supervise.service.ProblemService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,12 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
     @Autowired
     private ProblemService problemService;
 
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private LlmService llmService;
+
     @Override
     public String generateDocument(Long problemId, Integer docType) {
         // 1. 查询问题信息
@@ -28,8 +37,11 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
             throw new IllegalArgumentException("问题不存在");
         }
 
-        // 2. 根据文书类型生成不同内容
-        String content = buildDocumentContent(problem, docType);
+        // 2. 优先使用大模型生成；失败（未配置 Key / 网络异常）时降级为模板
+        String content = llmService.chat(SYSTEM_PROMPT, buildAiPrompt(problem, docType));
+        if (content == null) {
+            content = buildDocumentContent(problem, docType);
+        }
 
         // 3. 保存到数据库
         Document document = new Document();
@@ -41,6 +53,64 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
         this.save(document);
 
         return content;
+    }
+
+    private static final String SYSTEM_PROMPT =
+            "你是一名医院质量管理办公室的文书专员，负责撰写规范、正式的中文督办文书。" +
+            "只输出文书正文本身，不要输出任何解释、Markdown 标记或多余内容。" +
+            "文书要结构清晰、措辞严肃、条理分明。";
+
+    /**
+     * 构造大模型的文书生成提示词
+     */
+    private String buildAiPrompt(Problem problem, Integer docType) {
+        String docTypeName;
+        String requirements;
+        switch (docType) {
+            case 1:
+                docTypeName = "督办通知书";
+                requirements = "包含文书标题、主送对象（责任科室/责任人）、督办事项、督办要求、办理时限、落款单位与日期占位。";
+                break;
+            case 2:
+                docTypeName = "整改通知书";
+                requirements = "包含文书标题、主送对象（责任科室/责任人）、问题详情、整改要求、整改期限（自收到通知起7个工作日内）、出具单位与日期占位。";
+                break;
+            case 3:
+                docTypeName = "闭环报告";
+                requirements = "包含文书标题、问题标题、整改情况概述、结案意见、审核部门与结案日期。";
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的文书类型");
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("请根据以下晨会督办问题的信息，生成一份【").append(docTypeName).append("】。\n\n");
+        sb.append("问题标题：").append(problem.getTitle()).append("\n");
+        sb.append("问题描述：").append(problem.getContent() != null ? problem.getContent() : "无").append("\n");
+        sb.append("问题分类：").append(getCategoryDesc(problem.getCategory())).append("\n");
+        sb.append("风险等级：").append(getRiskLevelDesc(problem.getRiskLevel())).append("\n");
+        if (problem.getDeadline() != null) {
+            sb.append("办理截止时间：").append(problem.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))).append("\n");
+        }
+        if (problem.getAssigneeId() != null) {
+            User assignee = userMapper.selectById(problem.getAssigneeId());
+            if (assignee != null) {
+                sb.append("责任人：").append(assignee.getName())
+                        .append(assignee.getDept() != null ? "（" + assignee.getDept() + "）" : "")
+                        .append("\n");
+            }
+        }
+        sb.append("\n要求：").append(requirements);
+        sb.append(" 标题居中，正文分条列出，落款处写“质量管理办公室”和日期占位。");
+        return sb.toString();
+    }
+
+    private String getCategoryDesc(Integer category) {
+        if (category == null) return "未分类";
+        for (CategoryEnum e : CategoryEnum.values()) {
+            if (e.getCode().equals(category)) return e.getDesc();
+        }
+        return "未分类";
     }
 
     /**

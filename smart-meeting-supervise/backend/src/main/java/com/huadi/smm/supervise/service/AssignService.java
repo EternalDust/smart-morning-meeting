@@ -3,6 +3,9 @@ package com.huadi.smm.supervise.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.huadi.smm.supervise.entity.AssignRecord;
 import com.huadi.smm.supervise.entity.Problem;
+import com.huadi.smm.supervise.vo.UserVo;
+
+import java.util.List;
 
 public interface AssignService extends IService<AssignRecord> {
 
@@ -29,4 +32,10 @@ public interface AssignService extends IService<AssignRecord> {
      * @return 负责人ID
      */
     Long getCurrentAssignee(Long problemId);
+
+    /**
+     * 查询可分配的执行责任人列表
+     * @return 启用状态的科室人员（role=2）
+     */
+    List<UserVo> listAssignableUsers();
 }
