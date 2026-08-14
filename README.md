@@ -63,12 +63,24 @@
 | 汇报 → 督办 | ❌ 未接通 | 督办未读 `sm_meeting_summary` / `sm_meeting_interaction`，问题抽取未实现 |
 | 汇报/采集 → 可视化 | ❌ 未接通 | 可视化用 `bi_stat_*` 统计表，未直接读汇报的 `sm_meeting_*` 和采集的 `data_clean_data` |
 
-### 3. 待各负责人确认的问题
+### 3. 待各负责人确认的问题（请对应负责人直接填写答案）
 
-- **督办（巴格达）**：问题来源读汇报的哪个表/接口（当前未接 `sm_meeting_summary`/`sm_meeting_interaction`）？4 角色 enum 如何与共享表 role（1/2）对应？
-- **可视化（黄祺昊）**：`sys_user` 与共享 `sm_gm_members` 是否统一？晨会数据读 `bi_stat_meeting`（统计）还是直接读 `sm_meeting_signin/speech/interaction`？采集的 `data_clean_data` 如何进大屏（当前未读）？
-- **数据采集（曹丁兮）**：`data_clean_data` 的字段维度？与晨会数据的关联键（会议 ID / 科室）？
-- **审批（杨子亨）**：审批流程中发起人、审核人是否不同人？发起人/主持人在表中如何标记？
+**督办（巴格达）**
+- [ ] 问题来源读汇报的哪个表/接口（当前未接 `sm_meeting_summary`/`sm_meeting_interaction`）？　答：
+- [ ] 4 角色 enum 如何与共享表 role（1/2）对应？　答：
+
+**可视化（黄祺昊）**
+- [ ] `sys_user` 与共享 `sm_gm_members` 是否统一？　答：
+- [ ] 晨会数据读 `bi_stat_meeting`（统计）还是直接读 `sm_meeting_signin/speech/interaction`？两者关系？　答：
+- [ ] 采集的 `data_clean_data` 如何进大屏（当前未读）？　答：
+
+**数据采集（曹丁兮）**
+- [ ] `data_clean_data` 的字段维度？　答：
+- [ ] 与晨会数据的关联键（会议 ID / 科室）？　答：
+
+**审批（杨子亨）**
+- [ ] 审批流程中发起人、审核人是否不同人？　答：
+- [ ] 发起人/主持人在表中如何标记？　答：
 
 ## 交付要求
 
