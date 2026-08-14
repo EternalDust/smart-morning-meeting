@@ -7,27 +7,17 @@
       <span class="mr-time">{{ meeting.time }} · {{ meeting.location }}</span>
     </div>
 
-    <!-- 三栏主体 -->
+    <!-- 主体 -->
     <div class="mr-body">
-      <!-- 左栏 -->
-      <div class="mr-left">
-        <div class="mr-panel">
-          <h3>议程</h3>
-          <div class="agenda-list">
-            <div v-for="(a, i) in agendas" :key="i" :class="['agenda-item', { active: currentAgenda === i + 1, done: i + 1 < currentAgenda }]">
-              <span class="agenda-num">{{ currentAgenda > i + 1 ? '✓' : i + 1 }}</span>
-              {{ a }}
-            </div>
-          </div>
-        </div>
-
+      <!-- 左栏：管理员专属（签到统计 + 质量 + 摘要） -->
+      <div v-if="isAdmin" class="mr-left">
         <div class="mr-panel">
           <h3>签到</h3>
           <div class="sign-user">
             <el-avatar :size="32" style="background:var(--p)">{{ (userStore.userName || '?').charAt(0) }}</el-avatar>
             <span>{{ userStore.userName }}</span>
           </div>
-          <el-button type="primary" size="small" @click="doSignIn" style="width:100%" :disabled="signing">一键签到</el-button>
+          <el-button type="primary" size="small" @click="doSignIn" style="width:100%" :disabled="signing || alreadySigned">{{ alreadySigned ? '已签到' : '一键签到' }}</el-button>
           <div class="sign-stats">
             <span>已签 {{ signStats.signed }}/{{ signStats.shouldAttend }}</span>
             <span style="color:var(--w)">迟到 {{ signStats.late }}</span>
@@ -40,36 +30,55 @@
           <h3>会议质量</h3>
           <div class="quality-score">{{ meetingQuality.qualityScore }}</div>
           <div class="quality-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
-          <div class="quality-note">综合评分，结合出勤、发言、互动等维度测算</div>
+          <div class="quality-formula">评分 = 出勤率×40% + 发言×30% + 互动×30%</div>
+        </div>
+
+        <div class="mr-panel">
+          <div class="panel-hd">
+            <h3>会议摘要</h3>
+            <el-button size="small" type="primary" link :loading="aiLoading" @click="genSummary">AI 生成摘要</el-button>
+          </div>
+          <template v-if="aiSummary">
+            <div class="summary-text">{{ aiSummary.summary }}</div>
+            <template v-if="aiSummary.keyPoints && aiSummary.keyPoints.length">
+              <div class="ai-label">关键要点</div>
+              <div v-for="(k, i) in aiSummary.keyPoints" :key="i" class="ai-kp">{{ i + 1 }}. {{ k }}</div>
+            </template>
+            <template v-if="aiSummary.medicalEntities && aiSummary.medicalEntities.length">
+              <div class="ai-label">医疗实体</div>
+              <div class="ai-tags">
+                <el-tag v-for="(e, i) in aiSummary.medicalEntities" :key="i" size="small" effect="light" type="primary" style="margin:2px">{{ e }}</el-tag>
+              </div>
+            </template>
+          </template>
+          <div v-else class="summary-text">会议进行中...</div>
         </div>
       </div>
 
-      <!-- 中栏：汇报 -->
-      <div class="mr-center">
+      <!-- 非管理员：极简签到卡 -->
+      <div v-else class="mr-staff-sign">
+        <div class="mr-panel">
+          <h3>签到</h3>
+          <div class="staff-user">
+            <el-avatar :size="48" style="background:var(--p);font-size:20px">{{ (userStore.userName || '?').charAt(0) }}</el-avatar>
+            <div class="staff-name">{{ userStore.userName }}</div>
+            <div class="staff-role">参会人员</div>
+          </div>
+          <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="signing || alreadySigned">{{ alreadySigned ? '已签到' : '一键签到' }}</el-button>
+        </div>
+      </div>
+
+      <!-- 中栏：发言（管理员专属） -->
+      <div v-if="isAdmin" class="mr-center">
         <div class="mr-panel" style="flex:1;display:flex;flex-direction:column">
           <div class="section-hd">
-            <h3>当前环节：{{ agendas[currentAgenda - 1] || '—' }}</h3>
+            <h3>发言要点</h3>
             <div>
-              <el-button size="small" @click="currentAgenda = Math.max(1, currentAgenda - 1)" :disabled="currentAgenda <= 1">上一步</el-button>
-              <el-button size="small" @click="currentAgenda = Math.min(4, currentAgenda + 1)" :disabled="currentAgenda >= 4">下一步</el-button>
-            </div>
-          </div>
-
-          <div v-if="userStore.isLoggedIn && currentAgenda >= 2" class="speaker-bar">
-            <el-avatar :size="24" style="background:var(--p)">{{ (currentSpeaker || '?').charAt(0) }}</el-avatar>
-            <strong>{{ currentSpeaker }}</strong>
-            <span style="color:var(--ts);font-size:12px">当前汇报人</span>
-          </div>
-
-          <template v-if="currentAgenda >= 2">
-            <label class="field-label">发言要点</label>
-            <el-input v-model="speechContent" type="textarea" :rows="3" placeholder="录入发言人要点或会议摘要..." style="margin-bottom:8px" />
-            <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px">
               <el-button size="small" :type="recording ? 'danger' : 'primary'" @click="startVoiceTranscribe" :loading="transcribing">{{ recording ? `停止并转写 (${recSeconds}s)` : '语音转写' }}</el-button>
               <el-button size="small" type="primary" @click="saveSpeech">保存发言</el-button>
             </div>
-          </template>
-
+          </div>
+          <el-input v-model="speechContent" type="textarea" :rows="4" placeholder="录入发言人要点或会议摘要..." style="margin-bottom:8px" />
           <div class="record-list">
             <div class="section-title">汇报记录</div>
             <div v-for="r in speechRecords" :key="r.id" class="record-item">
@@ -83,8 +92,8 @@
         </div>
       </div>
 
-      <!-- 右栏：互动 -->
-      <div class="mr-right">
+      <!-- 右栏：互动（两种身份共用，管理员多 AI答复/回复按钮） -->
+      <div class="mr-right" :class="{ 'mr-right-flex': !isAdmin }">
         <div class="mr-panel" style="flex:1;display:flex;flex-direction:column">
           <h3>互动</h3>
           <div style="display:flex;gap:4px;margin-bottom:8px">
@@ -107,21 +116,24 @@
                 </template>
                 <div v-if="m.reply" class="msg-reply"><span>回复</span>{{ m.reply }}</div>
               </div>
-              <el-button v-if="!m.reply && isAdmin" link type="primary" size="small" @click="openReply(m)">回复</el-button>
+              <div v-if="!m.reply && isAdmin" class="msg-actions">
+                <el-button link type="primary" size="small" :loading="aiReplyingId === m.id" @click="aiReplyTo(m)">AI 答复</el-button>
+                <el-button link type="primary" size="small" @click="openReply(m)">回复</el-button>
+              </div>
             </div>
           </div>
           <div class="compose-bar">
             <div style="display:flex;gap:4px;margin-bottom:4px">
               <el-button size="small" :type="interType === 1 ? 'primary' : ''" @click="interType = 1">提问</el-button>
               <el-button size="small" :type="interType === 2 ? 'primary' : ''" @click="interType = 2">反馈</el-button>
-              <el-button size="small" :type="interType === 3 ? 'primary' : ''" @click="interType = 3">投票</el-button>
+              <el-button size="small" @click="showVoteDialog = true">投票</el-button>
             </div>
             <div style="display:flex;gap:6px">
               <el-input v-model="interContent" placeholder="输入互动..." size="small" @keyup.enter="sendInter" />
               <el-button type="primary" size="small" @click="sendInter">发送</el-button>
             </div>
           </div>
-          <div class="inter-stats">
+          <div v-if="isAdmin" class="inter-stats">
             <span>提问 {{ interStats.questions }}</span>
             <span>反馈 {{ interStats.feedback }}</span>
             <span>投票 {{ interStats.votes }}</span>
@@ -139,11 +151,25 @@
       </div>
     </el-dialog>
 
+    <!-- 回复弹窗 -->
     <el-dialog v-model="showReplyDialog" title="回复互动消息" width="360px">
       <el-input v-model="replyText" type="textarea" :rows="3" placeholder="输入回复内容..." />
       <template #footer>
         <el-button @click="showReplyDialog = false">取消</el-button>
         <el-button type="primary" :disabled="!replyText" @click="submitReply">回复</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 投票弹窗 -->
+    <el-dialog v-model="showVoteDialog" title="发起投票" width="360px">
+      <el-input v-model="voteTitle" placeholder="投票标题" style="margin-bottom:10px" />
+      <el-input v-model="voteOption" placeholder="添加选项" @keyup.enter="addVoteOption">
+        <template #append><el-button @click="addVoteOption">添加</el-button></template>
+      </el-input>
+      <el-tag v-for="(o, i) in voteOptions" :key="i" closable @close="voteOptions.splice(i,1)" style="margin:4px">{{ o }}</el-tag>
+      <template #footer>
+        <el-button @click="showVoteDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitVote" :disabled="!voteTitle || voteOptions.length < 2">发起投票</el-button>
       </template>
     </el-dialog>
   </div>
@@ -154,8 +180,8 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
-import { saveSpeech as apiSave, getSpeechList } from '../api/report'
-import { sendMessage, replyMessage, getInteractionList, getStats } from '../api/interaction'
+import { saveSpeech as apiSave, getSpeechList, getSummary, aiGenerateSummary } from '../api/report'
+import { sendMessage, replyMessage, getInteractionList, getStats, aiAnswer } from '../api/interaction'
 import { getMeetingAnalytics } from '../api/analytics'
 import { transcribeAudio } from '../api/asr'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -170,21 +196,10 @@ const meeting = store.currentMeeting
 const { lastMessage, connect } = useWebSocket(meeting.id)
 connect()
 
-const agendas = ['数据通报', '科室汇报', '问题讨论', '总结部署']
-const savedAgenda = Number(sessionStorage.getItem('currentAgenda'))
-const currentAgenda = ref(Number.isInteger(savedAgenda) && savedAgenda >= 1 && savedAgenda <= agendas.length ? savedAgenda : 2)
-watch(currentAgenda, (v) => sessionStorage.setItem('currentAgenda', String(v)))
 const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
-const currentSpeaker = computed(() => {
-  const list = speechRecords.value
-  for (let i = list.length - 1; i >= 0; i--) {
-    const name = speechNameMap.value[list[i].speakerId]
-    if (name) return name
-  }
-  return userStore.userName || '参会用户'
-})
 
 const signing = ref(false)
+const alreadySigned = ref(false)
 const signStats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
 const meetingQuality = ref(null)
 const showQR = ref(false)
@@ -201,14 +216,8 @@ let mediaRecorder = null
 let audioChunks = []
 let recTimer = null
 
-const startRecTimer = () => {
-  recSeconds.value = MAX_REC_SEC
-  clearInterval(recTimer)
-  recTimer = setInterval(() => {
-    recSeconds.value--
-    if (recSeconds.value <= 0) stopVoiceTranscribe()
-  }, 1000)
-}
+const aiSummary = ref(null)
+const aiLoading = ref(false)
 
 const interFilter = ref(0)
 const interType = ref(1)
@@ -219,6 +228,20 @@ const interStats = reactive({ questions: 0, feedback: 0, votes: 0, replied: 0 })
 const showReplyDialog = ref(false)
 const replyTargetId = ref(null)
 const replyText = ref('')
+const aiReplyingId = ref(null)
+const showVoteDialog = ref(false)
+const voteTitle = ref('')
+const voteOption = ref('')
+const voteOptions = ref([])
+
+const startRecTimer = () => {
+  recSeconds.value = MAX_REC_SEC
+  clearInterval(recTimer)
+  recTimer = setInterval(() => {
+    recSeconds.value--
+    if (recSeconds.value <= 0) stopVoiceTranscribe()
+  }, 1000)
+}
 
 const loadSign = async () => {
   const res = await getSignList(meeting.id)
@@ -226,6 +249,7 @@ const loadSign = async () => {
     normal: res.data.normal, late: res.data.late, absent: res.data.absent,
     shouldAttend: res.data.shouldAttend, signed: res.data.signed
   })
+  alreadySigned.value = userStore.userId ? (res.data.records || []).some(r => String(r.userId) === String(userStore.userId)) : false
   try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
 }
 
@@ -246,8 +270,28 @@ const getSpeakerName = (sid) => speechNameMap.value[sid] || sid
 
 const saveSpeech = async () => {
   if (!speechContent.value) { ElMessage.warning('请输入发言内容'); return }
-  const speakerId = userStore.userId || '9999'
+  const speakerId = userStore.userId
+  if (!speakerId) { ElMessage.warning('请先登录'); return }
   try { await apiSave({ meetingId: meeting.id, speakerId, content: speechContent.value }); ElMessage.success('发言已保存'); speechContent.value = ''; await loadSpeech() } catch {}
+}
+
+const normalizeSummary = (data) => {
+  if (data && typeof data === 'object' && data.summary != null) return data
+  if (typeof data === 'string' && data) return { summary: data, keyPoints: [], decisions: [], medicalEntities: [] }
+  return null
+}
+
+const loadSummary = async () => {
+  try { const s = await getSummary(meeting.id); aiSummary.value = normalizeSummary(s.data) } catch {}
+}
+
+const genSummary = async () => {
+  aiLoading.value = true
+  try {
+    const res = await aiGenerateSummary(meeting.id)
+    aiSummary.value = res.data || {}
+    ElMessage.success('摘要已生成')
+  } catch { ElMessage.error('摘要生成失败，请重试') } finally { aiLoading.value = false }
 }
 
 const withTimeout = (promise, ms) => Promise.race([
@@ -258,7 +302,6 @@ const withTimeout = (promise, ms) => Promise.race([
 const startVoiceTranscribe = async () => {
   if (recording.value) { stopVoiceTranscribe(); return }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    ElMessage.info('未获取到麦克风，使用模拟语音')
     await fallbackTranscribe()
     return
   }
@@ -276,7 +319,6 @@ const startVoiceTranscribe = async () => {
     startRecTimer()
     ElMessage.success('正在录音，最长 30 秒，再次点击或到时自动转写')
   } catch {
-    ElMessage.info('未获取到麦克风，使用模拟语音')
     await fallbackTranscribe()
   }
 }
@@ -290,7 +332,7 @@ const stopVoiceTranscribe = () => {
 }
 
 const fallbackTranscribe = async () => {
-  await uploadAudio(new Blob(['mock-audio'], { type: 'audio/wav' }))
+  ElMessage.warning('未检测到麦克风，请检查麦克风权限，或直接手动输入发言内容')
 }
 
 const uploadAudio = async (blob) => {
@@ -301,6 +343,8 @@ const uploadAudio = async (blob) => {
     if (text) {
       speechContent.value = speechContent.value ? speechContent.value + '\n' + text : text
       ElMessage.success('语音转写完成')
+    } else {
+      ElMessage.warning('未识别到语音内容，请重试')
     }
   } catch { ElMessage.error('语音转写失败') } finally { transcribing.value = false }
 }
@@ -336,7 +380,8 @@ const castVote = async (poll, idx) => {
 }
 
 const sendInter = async () => {
-  const uid = userStore.userId || '9999'
+  const uid = userStore.userId
+  if (!uid) { ElMessage.warning('请先登录'); return }
   if (!interContent.value) { ElMessage.warning('请输入内容'); return }
   try { await sendMessage({ meetingId: meeting.id, userId: uid, content: interContent.value, interactType: interType.value }); ElMessage.success('已发送'); interContent.value = ''; await loadInteraction() } catch {}
 }
@@ -358,13 +403,38 @@ const submitReply = async () => {
   } catch {}
 }
 
+const aiReplyTo = async (m) => {
+  aiReplyingId.value = m.id
+  try {
+    await aiAnswer(m.id)
+    ElMessage.success('AI 初步答复已生成')
+    await loadInteraction()
+  } catch { ElMessage.error('AI 答复生成失败') } finally { aiReplyingId.value = null }
+}
+
+const addVoteOption = () => {
+  if (voteOption.value) { voteOptions.value.push(voteOption.value); voteOption.value = '' }
+}
+
+const submitVote = async () => {
+  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
+  const content = `【投票】${voteTitle.value}\n` + voteOptions.value.map((o, i) => `${i + 1}. ${o}`).join('\n')
+  try {
+    await sendMessage({ meetingId: meeting.id, userId: userStore.userId, content, interactType: 3 })
+    ElMessage.success('投票已发起')
+    showVoteDialog.value = false
+    voteTitle.value = ''; voteOptions.value = []
+    await loadInteraction()
+  } catch {}
+}
+
 watch(showQR, async (v) => {
   if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meeting.id}`, { width: 200, margin: 1 }) }
 })
 
 watch(lastMessage, () => { loadSign(); loadInteraction() })
 watch(interFilter, () => loadInteraction())
-onMounted(() => { loadSign(); loadSpeech(); loadInteraction() })
+onMounted(() => { loadSign(); loadSpeech(); loadInteraction(); loadSummary() })
 </script>
 
 <style scoped>
@@ -372,24 +442,29 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction() })
 .mr-topbar { display:flex; align-items:center; gap:10px; padding:10px 16px; background:#fff; border-bottom:1px solid var(--bd); flex-shrink:0 }
 .mr-topbar h2 { font-size:16px; margin:0 }
 .mr-time { color:var(--ts); font-size:13px }
-.mr-body { flex:1; display:flex; gap:0; min-height:0; overflow:hidden }
-.mr-left { width:240px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
+.mr-body { flex:1; display:flex; min-height:0; overflow:hidden }
+.mr-left { width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
 .mr-center { flex:1; padding:10px; overflow-y:auto; background:#fff }
-.mr-right { width:280px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-left:1px solid var(--bd); background:#fff }
+.mr-right { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-left:1px solid var(--bd); background:#fff }
+.mr-right-flex { flex:1; width:auto; border-left:1px solid var(--bd) }
+.mr-staff-sign { width:260px; flex-shrink:0; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
 .mr-panel { background:#fff; padding:10px; border-radius:var(--radius); border:1px solid var(--bd); margin-bottom:8px }
-.agenda-item { padding:6px 8px; font-size:13px; border-radius:4px; margin-bottom:2px }
-.agenda-item.active { background:var(--pb); color:var(--p); font-weight:600 }
-.agenda-item.done { color:var(--s) }
-.agenda-num { display:inline-block; width:20px; text-align:center }
 .sign-user { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px }
 .sign-stats { display:flex; gap:8px; font-size:12px; margin-top:6px; color:var(--ts) }
 .quality-score { font-size:32px; font-weight:700; color:var(--p); text-align:center }
 .quality-meta { font-size:11px; color:var(--ts); text-align:center; margin-top:4px }
-.quality-note { font-size:10px; color:var(--ts); text-align:center; margin-top:6px; opacity:.85 }
+.quality-formula { font-size:10px; color:var(--ts); text-align:center; margin-top:6px; opacity:.85 }
+.panel-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
+.panel-hd h3 { font-size:14px; margin:0 }
+.summary-text { font-size:12px; line-height:1.6; color:#475569 }
+.ai-label { font-size:11px; font-weight:600; color:var(--ts); margin:6px 0 3px }
+.ai-kp { font-size:12px; color:#334155; line-height:1.5 }
+.ai-tags { display:flex; flex-wrap:wrap }
+.staff-user { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:12px }
+.staff-name { font-size:16px; font-weight:700 }
+.staff-role { font-size:12px; color:var(--ts) }
 .section-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px }
 .section-hd h3 { font-size:14px; margin:0 }
-.speaker-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:var(--pb); border-radius:6px }
-.field-label { font-size:12px; color:var(--ts); display:block; margin-bottom:4px }
 .record-list { flex:1; overflow-y:auto; min-height:0; margin-top:8px }
 .section-title { font-size:12px; color:var(--ts); margin-bottom:6px }
 .record-item { display:flex; gap:8px; padding:6px 0; border-bottom:1px solid var(--bd) }
@@ -402,6 +477,7 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction() })
 .msg-hd { font-size:11px; color:var(--ts); margin-bottom:2px }
 .msg-reply { margin-top:3px; padding:4px 8px; background:var(--pb); border-radius:4px; font-size:11px }
 .msg-reply span { color:var(--p); font-weight:600; margin-right:4px }
+.msg-actions { display:flex; align-items:center; gap:2px; flex-shrink:0 }
 .compose-bar { padding-top:8px; border-top:1px solid var(--bd); margin-top:8px }
 .inter-stats { display:flex; gap:6px; font-size:11px; color:var(--ts); margin-top:6px; flex-wrap:wrap }
 </style>

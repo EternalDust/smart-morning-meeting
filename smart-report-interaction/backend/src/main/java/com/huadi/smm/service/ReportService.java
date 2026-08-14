@@ -102,6 +102,7 @@ public class ReportService {
         if (lines.isEmpty()) {
             SummaryResult empty = new SummaryResult();
             empty.setSummary("当前会议暂无发言记录");
+            saveSummary(meetingId, toJson(empty));
             return empty;
         }
         SummaryResult result = aiClient.generateSummary(title, lines);

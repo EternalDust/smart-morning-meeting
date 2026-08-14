@@ -18,14 +18,13 @@
           <div class="q-num">{{ meetingQuality.qualityScore }}</div>
           <div class="q-label">会议质量评分</div>
           <div class="q-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
-          <div class="q-note">综合评分，结合出勤、发言、互动等维度测算</div>
+          <div class="q-note">评分 = 出勤率×40% + 发言×30% + 互动×30%</div>
           <div v-if="meetingQuality.isAnomaly === 1" class="anomaly-tag">异常</div>
         </div>
 
         <el-button type="primary" size="large" @click="doSignIn" style="width:100%" :disabled="alreadySigned" :loading="signing">
           {{ alreadySigned ? '已签到' : '一键签到' }}
         </el-button>
-        <el-button type="success" size="large" @click="doFaceSignIn" style="width:100%;margin-top:8px" :disabled="alreadySigned" :loading="faceSigning">人脸识别签到</el-button>
         <el-button size="small" @click="showQR = true" style="width:100%;margin-top:8px" v-if="isAdmin">分享签到二维码</el-button>
       </div>
 
@@ -58,34 +57,23 @@
         <p style="font-size:12px;color:var(--ts);margin-top:8px">参会人员扫描二维码签到</p>
       </div>
     </el-dialog>
-
-    <el-dialog v-model="showFaceDialog" title="人脸识别确认" width="300px" center>
-      <div style="text-align:center">
-        <img v-if="facePreviewUrl" :src="facePreviewUrl" style="width:100%;max-height:240px;object-fit:cover;border-radius:8px" />
-        <p style="font-size:13px;margin-top:10px">确认以 <strong>{{ userName }}</strong> 的身份自动签到？</p>
-      </div>
-      <template #footer>
-        <el-button @click="retakeFace">重新拍摄</el-button>
-        <el-button type="primary" :loading="faceSigning" @click="confirmFaceSignIn">确认签到</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
 import { getMeetingAnalytics } from '../api/analytics'
-import { recognizeFace } from '../api/face'
 import { useMeetingStore } from '../stores/meeting'
 import { useUserStore } from '../stores/user'
 
 const store = useMeetingStore()
 const userStore = useUserStore()
 const route = useRoute()
+const router = useRouter()
 const meeting = store.currentMeeting
 const meetingId = computed(() => {
   const q = route.query.meetingId
@@ -104,7 +92,6 @@ const userName = computed(() => {
 const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
 const signing = ref(false)
 const loading = ref(false)
-const faceSigning = ref(false)
 const alreadySigned = ref(false)
 const records = ref([])
 const nameMap = ref({})
@@ -112,9 +99,6 @@ const stats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed:
 const meetingQuality = ref(null)
 const showQR = ref(false)
 const qrCanvas = ref(null)
-const showFaceDialog = ref(false)
-const facePreviewUrl = ref('')
-let faceBlob = null
 
 const loadData = async () => {
   loading.value = true
@@ -141,69 +125,14 @@ const doSignIn = async () => {
   signing.value = false
 }
 
-const withTimeout = (promise, ms) => Promise.race([
-  promise,
-  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-])
-
-const capturePhoto = async () => {
-  const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ video: true }), 3000)
-  const video = document.createElement('video')
-  video.srcObject = stream
-  video.setAttribute('playsinline', '')
-  await new Promise(resolve => { video.onloadedmetadata = () => resolve(); video.play() })
-  const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  canvas.getContext('2d').drawImage(video, 0, 0)
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
-  stream.getTracks().forEach(t => t.stop())
-  return blob
-}
-
-const doFaceSignIn = async () => {
-  if (!userStore.userId) { ElMessage.warning('请先登录'); return }
-  if (faceSigning.value || alreadySigned.value) return
-  faceSigning.value = true
-  try {
-    let photo
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try { photo = await capturePhoto() } catch { photo = new Blob(['mock-face'], { type: 'image/jpeg' }); ElMessage.info('未获取到摄像头，使用模拟人脸') }
-    } else {
-      photo = new Blob(['mock-face'], { type: 'image/jpeg' })
-    }
-    faceBlob = photo
-    if (facePreviewUrl.value) URL.revokeObjectURL(facePreviewUrl.value)
-    facePreviewUrl.value = URL.createObjectURL(photo)
-    showFaceDialog.value = true
-  } catch { ElMessage.error('拍照失败') } finally { faceSigning.value = false }
-}
-
-const retakeFace = () => {
-  showFaceDialog.value = false
-  doFaceSignIn()
-}
-
-const confirmFaceSignIn = async () => {
-  if (!faceBlob || faceSigning.value) return
-  faceSigning.value = true
-  try {
-    const res = await recognizeFace(faceBlob, userStore.userId)
-    const f = res.data
-    if (!f.matched) { ElMessage.warning(f.message || '未识别到人脸'); showFaceDialog.value = false; return }
-    ElMessage.success(`人脸识别成功：${f.name || '参会人员'}（${f.role || '参会人员'}），置信度 ${Math.round((f.confidence || 0) * 100)}%`)
-    await signIn(meetingId.value, f.userId, 3)
-    ElMessage.success('已自动签到')
-    showFaceDialog.value = false
-    await loadData()
-  } catch { ElMessage.error('人脸识别失败') } finally { faceSigning.value = false }
-}
-
 watch(showQR, async (v) => {
   if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meetingId.value}`, { width: 200, margin: 1 }) }
 })
 
-onMounted(loadData)
+onMounted(() => {
+  if (!isAdmin.value) { router.replace('/meetingroom'); return }
+  loadData()
+})
 </script>
 
 <style scoped>

@@ -2,10 +2,8 @@
   <div class="app-container">
     <el-menu mode="horizontal" :default-active="activeMenu" router>
       <el-menu-item index="/meetingroom">主屏</el-menu-item>
-      <el-menu-item index="/sign">签到</el-menu-item>
-      <el-menu-item index="/report">汇报</el-menu-item>
-      <el-menu-item index="/interaction">互动</el-menu-item>
-      <el-menu-item index="/analytics">分析</el-menu-item>
+      <el-menu-item v-if="isAdmin" index="/sign">签到</el-menu-item>
+      <el-menu-item v-if="isAdmin" index="/analytics">分析</el-menu-item>
     </el-menu>
     <router-view />
   </div>
@@ -14,8 +12,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useUserStore } from './stores/user'
 const route = useRoute()
+const userStore = useUserStore()
 const activeMenu = computed(() => route.path)
+const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
 </script>
 
 <style>

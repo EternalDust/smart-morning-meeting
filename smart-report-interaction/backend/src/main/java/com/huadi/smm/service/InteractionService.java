@@ -39,9 +39,30 @@ public class InteractionService {
         if (meeting == null) {
             throw new RuntimeException("晨会不存在");
         }
+        if (msg.getInteractType() != null && msg.getInteractType() == 4) {
+            String pollId = extractPollId(msg.getContent());
+            if (pollId != null) {
+                LambdaQueryWrapper<Interaction> vq = new LambdaQueryWrapper<>();
+                vq.eq(Interaction::getMeetingId, msg.getMeetingId())
+                  .eq(Interaction::getUserId, msg.getUserId())
+                  .eq(Interaction::getInteractType, 4)
+                  .likeRight(Interaction::getContent, "VOTE:" + pollId + ":");
+                if (interactionMapper.selectCount(vq) > 0) {
+                    throw new RuntimeException("您已投过票，请勿重复投票");
+                }
+            }
+        }
         msg.setCreateTime(LocalDateTime.now().format(FMT));
         interactionMapper.insert(msg);
         return msg;
+    }
+
+    private String extractPollId(String content) {
+        if (content == null || !content.startsWith("VOTE:")) {
+            return null;
+        }
+        String[] parts = content.split(":");
+        return parts.length >= 2 && !parts[1].isEmpty() ? parts[1] : null;
     }
 
     public Interaction replyMessage(Long id, String reply) {

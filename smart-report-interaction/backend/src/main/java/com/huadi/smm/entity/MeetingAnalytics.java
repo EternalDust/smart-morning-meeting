@@ -22,6 +22,7 @@ public class MeetingAnalytics {
     private Integer speechCount;
     private Integer interactionCount;
     private BigDecimal qualityScore;
+    private Integer isAnomaly;
     private String createdAt;
     private String updatedAt;
 }

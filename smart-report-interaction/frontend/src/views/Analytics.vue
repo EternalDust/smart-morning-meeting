@@ -117,3 +117,12 @@ function renderDeptChart() {
   })
 }
 </script>
+
+<style scoped>
+.page-layout { display:flex; flex-direction:column; height:100%; overflow:hidden; padding:16px }
+.top-bar { display:flex; align-items:center; margin-bottom:16px; flex-shrink:0 }
+.top-bar h2 { font-size:18px; margin:0 }
+.content { flex:1; overflow-y:auto; min-height:0; display:flex; flex-direction:column; gap:16px; padding-right:4px }
+.panel { background:#fff; border:1px solid var(--bd); border-radius:10px; padding:16px; flex-shrink:0 }
+.panel h3 { font-size:14px; margin:0 0 12px }
+</style>
