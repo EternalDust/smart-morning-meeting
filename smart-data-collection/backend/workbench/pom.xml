@@ -17,6 +17,18 @@
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.huadi</groupId>
+            <artifactId>data-collection</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.huadi</groupId>
+            <artifactId>data-cleaning</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.huadi</groupId>
+            <artifactId>data-labeling</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>

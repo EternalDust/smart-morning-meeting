@@ -17,7 +17,7 @@
             <el-icon><Odometer /></el-icon>
             <span>工作台首页</span>
           </el-menu-item>
-          <el-menu-item index="/datasource">
+          <el-menu-item v-if="isAdmin" index="/datasource">
             <el-icon><Connection /></el-icon>
             <span>数据源管理</span>
           </el-menu-item>
@@ -29,7 +29,7 @@
             <el-icon><Share /></el-icon>
             <span>数据溯源</span>
           </el-menu-item>
-          <el-menu-item index="/label">
+          <el-menu-item v-if="isAdmin" index="/label">
             <el-icon><Collection /></el-icon>
             <span>标签管理</span>
           </el-menu-item>
@@ -45,7 +45,7 @@
             </el-breadcrumb>
           </div>
           <div class="user-area">
-            <span class="username">{{ userStore.userInfo?.username || '管理员' }}</span>
+            <span class="username">{{ userStore.userInfo?.name || userStore.userInfo?.username || '用户' }}</span>
             <el-tag size="small">{{ roleLabel }}</el-tag>
             <el-button type="danger" text @click="handleLogout">退出</el-button>
           </div>
@@ -70,6 +70,7 @@ const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '')
+const isAdmin = computed(() => ['admin', 'manager'].includes(userStore.role))
 
 const roleLabel = computed(() => {
   const map = { admin: '管理员', manager: '管理者', operator: '操作员' }

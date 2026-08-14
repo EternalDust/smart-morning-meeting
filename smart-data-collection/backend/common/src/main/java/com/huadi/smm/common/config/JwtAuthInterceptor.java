@@ -1,6 +1,7 @@
 package com.huadi.smm.common.config;
 
 import com.huadi.smm.common.utils.JwtUtil;
+import io.jsonwebtoken.Claims;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -26,20 +27,64 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.setContentType("application/json;charset=UTF-8");
-            response.setStatus(401);
-            response.getWriter().write("{\"success\":false,\"code\":401,\"msg\":\"未提供有效的认证令牌\"}");
-            return false;
+            return reject(response, 401, "未提供有效的认证令牌");
         }
 
         String token = authHeader.substring(7);
         if (!JwtUtil.validateToken(token)) {
-            response.setContentType("application/json;charset=UTF-8");
-            response.setStatus(401);
-            response.getWriter().write("{\"success\":false,\"code\":401,\"msg\":\"Token无效或已过期\"}");
-            return false;
+            return reject(response, 401, "Token无效或已过期");
+        }
+
+        // 解析角色，实现接口级权限隔离
+        Claims claims = JwtUtil.parseToken(token);
+        request.setAttribute("claims", claims);
+        String role = claims.get("role") == null ? "operator" : claims.get("role").toString();
+        boolean admin = "admin".equals(role) || "manager".equals(role);
+
+        if (isAdminOnly(request) && !admin) {
+            return reject(response, 403, "无权限执行该操作，仅管理员可访问");
         }
 
         return true;
+    }
+
+    /**
+     * 判定当前请求是否仅管理员可操作。
+     * 规则：所有 GET（查询类）对任意已认证用户开放；
+     * 管理类写操作（数据源增删改、清洗触发、规则管理、采集上报、异常处理、标签生成）仅 admin/manager。
+     */
+    private boolean isAdminOnly(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        if ("GET".equals(method)) {
+            return false;
+        }
+        if (path.startsWith("/api/v1/datasource") && !path.endsWith("/test")) {
+            return true;
+        }
+        if (path.startsWith("/api/v1/cleaning/trigger")) {
+            return true;
+        }
+        if (path.startsWith("/api/v1/cleaning-rule")) {
+            return true;
+        }
+        if (path.startsWith("/api/v1/collect/report") || path.startsWith("/api/v1/collect/manual")) {
+            return true;
+        }
+        if (path.startsWith("/api/v1/anomaly")) {
+            return true;
+        }
+        if (path.startsWith("/api/v1/label/generate") || path.startsWith("/api/v1/label/nlp")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean reject(HttpServletResponse response, int code, String msg) throws Exception {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(code);
+        response.getWriter().write("{\"success\":false,\"code\":" + code
+                + ",\"msg\":\"" + msg + "\"}");
+        return false;
     }
 }

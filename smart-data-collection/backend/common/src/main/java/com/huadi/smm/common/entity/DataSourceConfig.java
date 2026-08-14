@@ -17,6 +17,7 @@ public class DataSourceConfig {
     private String sourceCode;
     private String sourceName;
     private String sourceType;
+    private String dataDomain;
     private String configJson;
     private Integer status;
     private LocalDateTime createTime;
