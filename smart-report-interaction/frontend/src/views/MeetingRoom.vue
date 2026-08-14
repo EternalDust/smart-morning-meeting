@@ -29,7 +29,7 @@
           <h3>会议质量</h3>
           <div class="quality-score">{{ meetingQuality.qualityScore }}</div>
           <div class="quality-meta">出勤 {{ meetingQuality.attendRate }}% · 发言 {{ meetingQuality.speechCount }} · 互动 {{ meetingQuality.interactionCount }}</div>
-          <div class="quality-formula">评分 = 出勤率×40% + 发言×30% + 互动×30%</div>
+          <div class="quality-formula">评分 = 出勤率40% + 准时率25% + 发言参与20% + 互动参与15%</div>
         </div>
 
         <div class="mr-panel" v-if="weeklyTrend.length">

@@ -79,7 +79,10 @@ public class AnalyticsService {
                         .in(Interaction::getInteractType, 1, 2, 3)).intValue();
 
         double attendRate = shouldAttend == 0 ? 0 : signed * 100.0 / shouldAttend;
-        double score = attendRate * 0.4 + Math.min(speech / 5.0, 1.0) * 30 + Math.min(interaction / 8.0, 1.0) * 30;
+        double punctuality = signed == 0 ? 0 : normal * 100.0 / signed;
+        double speechRate = shouldAttend == 0 ? 0 : Math.min(speech * 100.0 / shouldAttend, 100.0);
+        double interRate = shouldAttend == 0 ? 0 : Math.min(interaction * 100.0 / shouldAttend, 100.0);
+        double score = attendRate * 0.4 + punctuality * 0.25 + speechRate * 0.2 + interRate * 0.15;
 
         a.setShouldAttend(shouldAttend);
         a.setActualAttend(signed);
