@@ -55,6 +55,22 @@
         </div>
       </div>
 
+      <!-- 非管理员：汇报记录（只读） -->
+      <div v-if="!isAdmin" class="mr-staff-speech">
+        <div class="mr-panel" style="flex:1;display:flex;flex-direction:column">
+          <h3>汇报记录</h3>
+          <div class="record-list">
+            <div v-for="r in speechRecords" :key="r.id" class="record-item">
+              <el-avatar :size="20" style="flex-shrink:0">{{ (getSpeakerName(r.speakerId) || '?').charAt(0) }}</el-avatar>
+              <div class="record-body">
+                <div><strong>{{ getSpeakerName(r.speakerId) }}</strong> · <span class="record-time">{{ r.speechTime }}</span></div>
+                <p>{{ r.content }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 中栏：签到记录 + 发言（管理员专属） -->
       <div v-if="isAdmin" class="mr-center">
         <div class="mr-panel">
@@ -94,7 +110,7 @@
       </div>
 
       <!-- 右栏：摘要（管理员）+ 互动（两种身份共用） -->
-      <div class="mr-right" :class="{ 'mr-right-flex': !isAdmin }">
+      <div class="mr-right">
         <div v-if="isAdmin" class="mr-panel">
           <div class="panel-hd">
             <h3>会议摘要</h3>
@@ -462,6 +478,7 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction(); loadSummary() })
 .mr-right { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-left:1px solid var(--bd); background:#fff }
 .mr-right-flex { flex:1; width:auto; border-left:1px solid var(--bd) }
 .mr-staff-sign { width:260px; flex-shrink:0; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
+.mr-staff-speech { flex:1; padding:10px; display:flex; flex-direction:column; min-height:0; overflow-y:auto; background:#fff }
 .mr-panel { background:#fff; padding:10px; border-radius:var(--radius); border:1px solid var(--bd); margin-bottom:8px }
 .sign-user { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px }
 .sign-stats { display:flex; gap:8px; font-size:12px; margin-top:6px; color:var(--ts) }
