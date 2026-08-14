@@ -23,7 +23,6 @@
             <span style="color:var(--w)">迟到 {{ signStats.late }}</span>
             <span style="color:var(--d)">缺席 {{ signStats.absent }}</span>
           </div>
-          <el-button size="small" @click="showQR = true" style="width:100%;margin-top:6px">二维码</el-button>
         </div>
 
         <div class="mr-panel" v-if="meetingQuality">
@@ -33,25 +32,13 @@
           <div class="quality-formula">评分 = 出勤率×40% + 发言×30% + 互动×30%</div>
         </div>
 
-        <div class="mr-panel">
-          <div class="panel-hd">
-            <h3>会议摘要</h3>
-            <el-button size="small" type="primary" link :loading="aiLoading" @click="genSummary">AI 生成摘要</el-button>
+        <div class="mr-panel" v-if="weeklyTrend.length">
+          <h3>全平台周度趋势</h3>
+          <div v-for="w in weeklyTrend.slice(-4)" :key="w.meetingWeek" class="trend-row">
+            <span>{{ w.meetingWeek }}</span>
+            <span>出勤 {{ w.avgAttendRate }}%</span>
+            <span>评分 {{ w.avgQualityScore }}</span>
           </div>
-          <template v-if="aiSummary">
-            <div class="summary-text">{{ aiSummary.summary }}</div>
-            <template v-if="aiSummary.keyPoints && aiSummary.keyPoints.length">
-              <div class="ai-label">关键要点</div>
-              <div v-for="(k, i) in aiSummary.keyPoints" :key="i" class="ai-kp">{{ i + 1 }}. {{ k }}</div>
-            </template>
-            <template v-if="aiSummary.medicalEntities && aiSummary.medicalEntities.length">
-              <div class="ai-label">医疗实体</div>
-              <div class="ai-tags">
-                <el-tag v-for="(e, i) in aiSummary.medicalEntities" :key="i" size="small" effect="light" type="primary" style="margin:2px">{{ e }}</el-tag>
-              </div>
-            </template>
-          </template>
-          <div v-else class="summary-text">会议进行中...</div>
         </div>
       </div>
 
@@ -68,8 +55,22 @@
         </div>
       </div>
 
-      <!-- 中栏：发言（管理员专属） -->
+      <!-- 中栏：签到记录 + 发言（管理员专属） -->
       <div v-if="isAdmin" class="mr-center">
+        <div class="mr-panel">
+          <div class="section-hd">
+            <h3>签到记录</h3>
+            <span class="count">已签 {{ signStats.signed }}/{{ signStats.shouldAttend }}</span>
+          </div>
+          <div class="sign-list">
+            <div v-for="r in signRecords" :key="r.id" class="sign-row">
+              <el-avatar :size="22" style="flex-shrink:0">{{ (getSignUserName(r.userId) || '?').charAt(0) }}</el-avatar>
+              <span class="sign-name">{{ getSignUserName(r.userId) }}</span>
+              <el-tag :type="r.signStatus === 0 ? 'success' : 'warning'" size="small">{{ r.signStatus === 0 ? '准时' : '迟到' }}</el-tag>
+              <span class="sign-time">{{ r.signTime }}</span>
+            </div>
+          </div>
+        </div>
         <div class="mr-panel" style="flex:1;display:flex;flex-direction:column">
           <div class="section-hd">
             <h3>发言要点</h3>
@@ -92,8 +93,28 @@
         </div>
       </div>
 
-      <!-- 右栏：互动（两种身份共用，管理员多 AI答复/回复按钮） -->
+      <!-- 右栏：摘要（管理员）+ 互动（两种身份共用） -->
       <div class="mr-right" :class="{ 'mr-right-flex': !isAdmin }">
+        <div v-if="isAdmin" class="mr-panel">
+          <div class="panel-hd">
+            <h3>会议摘要</h3>
+            <el-button size="small" type="primary" link :loading="aiLoading" @click="genSummary">AI 生成摘要</el-button>
+          </div>
+          <template v-if="aiSummary">
+            <div class="summary-text">{{ aiSummary.summary }}</div>
+            <template v-if="aiSummary.keyPoints && aiSummary.keyPoints.length">
+              <div class="ai-label">关键要点</div>
+              <div v-for="(k, i) in aiSummary.keyPoints" :key="i" class="ai-kp">{{ i + 1 }}. {{ k }}</div>
+            </template>
+            <template v-if="aiSummary.medicalEntities && aiSummary.medicalEntities.length">
+              <div class="ai-label">医疗实体</div>
+              <div class="ai-tags">
+                <el-tag v-for="(e, i) in aiSummary.medicalEntities" :key="i" size="small" effect="light" type="primary" style="margin:2px">{{ e }}</el-tag>
+              </div>
+            </template>
+          </template>
+          <div v-else class="summary-text">会议进行中...</div>
+        </div>
         <div class="mr-panel" style="flex:1;display:flex;flex-direction:column">
           <h3>互动</h3>
           <div style="display:flex;gap:4px;margin-bottom:8px">
@@ -143,14 +164,6 @@
       </div>
     </div>
 
-    <!-- QR 弹窗 -->
-    <el-dialog v-model="showQR" title="扫码签到" width="280px" center>
-      <div style="text-align:center">
-        <canvas ref="qrCanvas" style="width:200px;height:200px"></canvas>
-        <p style="font-size:12px;color:var(--ts);margin-top:8px">手机扫码即可签到</p>
-      </div>
-    </el-dialog>
-
     <!-- 回复弹窗 -->
     <el-dialog v-model="showReplyDialog" title="回复互动消息" width="360px">
       <el-input v-model="replyText" type="textarea" :rows="3" placeholder="输入回复内容..." />
@@ -176,13 +189,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import QRCode from 'qrcode'
 import { signIn, getSignList } from '../api/sign'
 import { saveSpeech as apiSave, getSpeechList, getSummary, aiGenerateSummary } from '../api/report'
 import { sendMessage, replyMessage, getInteractionList, getStats, aiAnswer } from '../api/interaction'
-import { getMeetingAnalytics } from '../api/analytics'
+import { getMeetingAnalytics, getWeeklyTrend } from '../api/analytics'
 import { transcribeAudio } from '../api/asr'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useMeetingStore } from '../stores/meeting'
@@ -201,9 +213,10 @@ const isAdmin = computed(() => String(userStore.userId).startsWith('2'))
 const signing = ref(false)
 const alreadySigned = ref(false)
 const signStats = reactive({ normal: 0, late: 0, absent: 0, shouldAttend: 0, signed: 0 })
+const signRecords = ref([])
+const signNameMap = ref({})
 const meetingQuality = ref(null)
-const showQR = ref(false)
-const qrCanvas = ref(null)
+const weeklyTrend = ref([])
 
 const speechContent = ref('')
 const speechRecords = ref([])
@@ -249,9 +262,14 @@ const loadSign = async () => {
     normal: res.data.normal, late: res.data.late, absent: res.data.absent,
     shouldAttend: res.data.shouldAttend, signed: res.data.signed
   })
-  alreadySigned.value = userStore.userId ? (res.data.records || []).some(r => String(r.userId) === String(userStore.userId)) : false
+  signRecords.value = res.data.records || []
+  signNameMap.value = res.data.nameMap || {}
+  alreadySigned.value = userStore.userId ? signRecords.value.some(r => String(r.userId) === String(userStore.userId)) : false
   try { const a = await getMeetingAnalytics(meeting.id); meetingQuality.value = a.data } catch {}
+  try { const w = await getWeeklyTrend(); weeklyTrend.value = w.data || [] } catch {}
 }
+
+const getSignUserName = (uid) => signNameMap.value[uid] || uid
 
 const doSignIn = async () => {
   const uid = userStore.userId
@@ -428,10 +446,6 @@ const submitVote = async () => {
   } catch {}
 }
 
-watch(showQR, async (v) => {
-  if (v) { await nextTick(); if (qrCanvas.value) await QRCode.toCanvas(qrCanvas.value, `${location.origin}/sign?meetingId=${meeting.id}`, { width: 200, margin: 1 }) }
-})
-
 watch(lastMessage, () => { loadSign(); loadInteraction() })
 watch(interFilter, () => loadInteraction())
 onMounted(() => { loadSign(); loadSpeech(); loadInteraction(); loadSummary() })
@@ -444,7 +458,7 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction(); loadSummary() })
 .mr-time { color:var(--ts); font-size:13px }
 .mr-body { flex:1; display:flex; min-height:0; overflow:hidden }
 .mr-left { width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
-.mr-center { flex:1; padding:10px; overflow-y:auto; background:#fff }
+.mr-center { flex:1; padding:10px; display:flex; flex-direction:column; gap:8px; min-height:0; background:#fff }
 .mr-right { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:10px; overflow-y:auto; border-left:1px solid var(--bd); background:#fff }
 .mr-right-flex { flex:1; width:auto; border-left:1px solid var(--bd) }
 .mr-staff-sign { width:260px; flex-shrink:0; padding:10px; overflow-y:auto; border-right:1px solid var(--bd); background:#fff }
@@ -471,6 +485,13 @@ onMounted(() => { loadSign(); loadSpeech(); loadInteraction(); loadSummary() })
 .record-body { flex:1; min-width:0 }
 .record-body p { font-size:13px; margin-top:2px }
 .record-time { font-size:11px; color:var(--ts) }
+.sign-list { max-height:200px; overflow-y:auto }
+.sign-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #F1F5F9; font-size:12px }
+.sign-row:last-child { border-bottom:none }
+.sign-name { flex:1; font-size:12px; font-weight:500 }
+.sign-time { font-size:11px; color:var(--ts) }
+.count { font-size:12px; color:var(--ts) }
+.trend-row { display:flex; justify-content:space-between; font-size:11px; color:var(--ts); padding:2px 0 }
 .msg-stream { flex:1; overflow-y:auto; min-height:0 }
 .msg-item { display:flex; gap:6px; padding:6px 0; border-bottom:1px solid var(--bd); font-size:12px }
 .msg-body { flex:1; min-width:0 }
