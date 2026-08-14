@@ -71,9 +71,10 @@ export struct InteractionPageContent {
 
   async sendMessage() {
     if (!this.inputText.trim()) return
+    if (!this.userId) return
     this.isSending = true
     try {
-      await ApiService.sendMessage(1, parseInt(this.userId || '9999'), 2, this.inputText.trim())
+      await ApiService.sendMessage(1, parseInt(this.userId), 2, this.inputText.trim())
       this.inputText = ''
       await this.loadData()
     } finally { this.isSending = false }
@@ -81,11 +82,12 @@ export struct InteractionPageContent {
 
   async submitVote() {
     if (!this.voteTitle || !this.voteOptions.trim()) return
+    if (!this.userId) return
     const options = this.voteOptions.split('\n').filter(o => o.trim())
     if (options.length < 2) return
     const content = `【投票】${this.voteTitle}\n` + options.map((o, i) => `${i + 1}. ${o}`).join('\n')
     try {
-      await ApiService.sendMessage(1, parseInt(this.userId || '9999'), 3, content)
+      await ApiService.sendMessage(1, parseInt(this.userId), 3, content)
       this.showVote = false; this.voteTitle = ''; this.voteOptions = ''
       await this.loadData()
     } catch (e) {}

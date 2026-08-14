@@ -26,16 +26,22 @@ export struct SignInPageContent {
   @State isAnomaly: boolean = false
   @State isAdmin: boolean = false
   private ws: webSocket.WebSocket | null = null
+  private wsDestroyed: boolean = false
 
   async aboutToAppear() {
     this.userId = await TokenManager.getUserId()
     this.userName = await TokenManager.getUserName()
     this.isAdmin = this.userId.startsWith('2')
+    this.wsDestroyed = false
     await this.loadData()
     this.connectWebSocket()
   }
 
-  aboutToDisappear() { this.ws?.close() }
+  aboutToDisappear() {
+    this.wsDestroyed = true
+    this.ws?.close()
+    this.ws = null
+  }
 
   async loadData() {
     this.isLoading = true
@@ -68,7 +74,10 @@ export struct SignInPageContent {
     this.ws.on('message', (err: Error, value: string) => {
       try { const msg = JSON.parse(value as string); if (msg.type === 'sign') this.loadData() } catch (e) {}
     })
-    this.ws.on('close', (err: Error, value: string) => { setTimeout(() => this.connectWebSocket(), 3000) })
+    this.ws.on('close', (err: Error, value: string) => {
+      if (this.wsDestroyed) return
+      setTimeout(() => this.connectWebSocket(), 3000)
+    })
   }
 
   async doSignIn() {
