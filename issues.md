@@ -35,7 +35,14 @@
 
 **数据采集（曹丁兮）**
 - [ ] `data_clean_data` 的字段维度？　答：
+- 清洗后标准数据表，记录粒度 = 一次就诊/诊疗记录（按 `patient_id + visit_time` 唯一去重）。
+  字段：patient_id（患者）、visit_time（就诊时间，标准化为 yyyy-MM-dd HH:mm:ss）、age / gender（人口学，缺失填 -1 / 统一男/女）、
+  diagnosis（诊疗，缺失填"未知"）、department（科室）、doctor_id（接诊医生）、quality_score（质量分：完整性40%+一致性30%+有效性30%，≥60 合格）、
+  id / create_time（元信息）。
 - [ ] 与晨会数据的关联键（会议 ID / 科室）？　答：
+- 当前关联键是 `department`（科室）。`data_clean_data.department` 对应 `sm_gm_members.dept`（科室），
+  晨会按科室参会/汇报，由此间接关联到会议：`department = sm_gm_members.dept → meeting_attendee（参会人员）→ sm_meeting_info（会议）`。
+  科室即大屏按科室展示指标、晨会按科室汇报的聚合维度。表内暂无 meeting_id 字段，如需精确到某次会议可补列（对应 sm_meeting_info.id）。
 
 **审批（杨子亨）**
 - [ ] 审批流程中发起人、审核人是否不同人？　答：
