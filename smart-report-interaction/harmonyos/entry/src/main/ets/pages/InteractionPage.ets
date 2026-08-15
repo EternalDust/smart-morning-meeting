@@ -60,7 +60,7 @@ export struct InteractionPageContent {
 
   connectWebSocket(): void {
     this.ws = webSocket.createWebSocket()
-    this.ws.connect('ws://10.0.2.2:8081/api/meeting/realtime/push/1', (err, value) => {})
+    this.ws.connect('ws://127.0.0.1:8081/api/meeting/realtime/push/1', (err, value) => {})
     this.ws.on('message', (err, value) => {
       try {
         const text: string = typeof value === 'string' ? value : ''

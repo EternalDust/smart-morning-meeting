@@ -2,7 +2,7 @@ import http from '@ohos.net.http'
 import { TokenManager } from '../utils/TokenManager'
 import { ApiResponse } from '../../model/ApiResponse'
 
-const BASE_URL = 'http://10.0.2.2:8085'
+const BASE_URL = 'http://127.0.0.1:8085'
 
 export class HttpClient {
   static async request<T>(method: http.RequestMethod, path: string, body?: Object): Promise<ApiResponse<T>> {
