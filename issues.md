@@ -30,12 +30,28 @@
 
 **可视化（黄祺昊）**
 - [ ] `sys_user` 与共享 `sm_gm_members` 是否统一？　答：
+- 当前未统一。可视化独立维护 `sys_user` 表（role_id 1/2/3 = 高层/中层/基层），登录鉴权走本子系统自己的 JWT（secret `smart-morning-meeting-2026`，24h 过期），与共享表 `sm_gm_members.role`（1 管理层 / 2 普通医护）两套并存。
+  建议整合：账号与鉴权统一到共享表 + JWT，可视化侧不再单独建账号表；"高层/中层/基层"作为展示/数据范围权限，从共享 role 映射得到：`role=1`（管理层）→ 中层及以上（可看复盘报告 / 全院数据），`role=2`（普通医护）→ 基层（只看本科室）。既满足"权限分级"要求，又与共享账号体系对齐。
 - [ ] 晨会数据读 `bi_stat_meeting`（统计）还是直接读 `sm_meeting_signin/speech/interaction`？两者关系？　答：
+- 当前读统计结果 `bi_stat_meeting`，不直接读汇报交互明细表。大屏参会率趋势查 `bi_stat_meeting`、部门分布查 `bi_stat_supervise`、实时预警查 `bi_warn_record`（由实时异常检测模块写入）。
+  两者是"明细 → 聚合"的上下游关系：`sm_meeting_signin/speech/interaction` 明细由汇报交互子系统产生，大数据分析子系统用 Spark 实时/离线任务按"日期 + 科室"聚合成 `bi_stat_*` 统计事实表，大屏只消费聚合结果，避免直接读明细带来的高耦合与查询压力。目前 `bi_stat_meeting` 由 mock 脚本填充（`mock_data_7days.sql` / `/api/dashboard/test-insert`），接真实数据时由 Spark 批处理从明细按日按科室写入即可。
 - [ ] 采集的 `data_clean_data` 如何进大屏（当前未读）？　答：
+- 当前未接入。现有链路为自造 mock 数据进 Kafka → Spark Streaming → 实时异常检测 → 写 `bi_warn_record`，未消费采集的 `data_clean_data`。
+  规划接入路径（可并行）：
+  1. 实时链路：采集侧将 `data_clean_data` 发到 Kafka（复用现有 topic 或新开），Spark Streaming 消费后做指标聚合与异常检测，结果写 `bi_stat_*` / `bi_warn_record`，大屏 WebSocket 实时刷新；
+  2. 离线链路：Spark 离线批处理按 T+1 从 `data_clean_data` 聚合写入 `bi_stat_meeting` / `bi_stat_medical`，供趋势 / 分布图表查询。
+  关联键按采集（曹丁兮）答复：`data_clean_data.department` → `sm_gm_members.dept` → `meeting_attendee` → `sm_meeting_info`；如需精确到某次会议，需在 `data_clean_data` 补 `meeting_id` 列。确认字段与关联键后，我在大数据侧补对应的 Kafka 消费者 / 批处理读取模块即可打通。
 
 **数据采集（曹丁兮）**
 - [ ] `data_clean_data` 的字段维度？　答：
+- 清洗后标准数据表，记录粒度 = 一次就诊/诊疗记录（按 `patient_id + visit_time` 唯一去重）。
+  字段：patient_id（患者）、visit_time（就诊时间，标准化为 yyyy-MM-dd HH:mm:ss）、age / gender（人口学，缺失填 -1 / 统一男/女）、
+  diagnosis（诊疗，缺失填"未知"）、department（科室）、doctor_id（接诊医生）、quality_score（质量分：完整性40%+一致性30%+有效性30%，≥60 合格）、
+  id / create_time（元信息）。
 - [ ] 与晨会数据的关联键（会议 ID / 科室）？　答：
+- 当前关联键是 `department`（科室）。`data_clean_data.department` 对应 `sm_gm_members.dept`（科室），
+  晨会按科室参会/汇报，由此间接关联到会议：`department = sm_gm_members.dept → meeting_attendee（参会人员）→ sm_meeting_info（会议）`。
+  科室即大屏按科室展示指标、晨会按科室汇报的聚合维度。表内暂无 meeting_id 字段，如需精确到某次会议可补列（对应 sm_meeting_info.id）。
 
 **审批（杨子亨）**
 - [ ] 审批流程中发起人、审核人是否不同人？　答：

@@ -2,6 +2,7 @@ package com.huadi.smm.supervise.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.huadi.smm.supervise.ai.AiClient;
 import com.huadi.smm.supervise.entity.Document;
 import com.huadi.smm.supervise.entity.Problem;
 import com.huadi.smm.supervise.entity.User;
@@ -27,7 +28,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
     private UserMapper userMapper;
 
     @Autowired
-    private LlmService llmService;
+    private AiClient aiClient;
 
     @Override
     public String generateDocument(Long problemId, Integer docType) {
@@ -38,7 +39,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
         }
 
         // 2. 优先使用大模型生成；失败（未配置 Key / 网络异常）时降级为模板
-        String content = llmService.chat(SYSTEM_PROMPT, buildAiPrompt(problem, docType));
+        String content = aiClient.chat(SYSTEM_PROMPT, buildAiPrompt(problem, docType));
         if (content == null) {
             content = buildDocumentContent(problem, docType);
         }

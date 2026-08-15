@@ -16,6 +16,7 @@ CREATE TABLE sm_problem (
                             title VARCHAR(255) NOT NULL COMMENT '问题标题',
                             content TEXT COMMENT '问题描述',
                             source_type INT DEFAULT 2 COMMENT '来源类型: 1自动采集 2手动录入',
+                            meeting_id BIGINT COMMENT '来源会议ID（汇报交互）',
                             creator_id BIGINT COMMENT '录入人ID',
                             assignee_id BIGINT COMMENT '负责人ID',
                             category INT COMMENT '问题分类: 1医疗 2运维 3管理',

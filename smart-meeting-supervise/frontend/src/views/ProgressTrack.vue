@@ -1,5 +1,27 @@
 <template>
   <div>
+    <el-card style="margin-bottom:16px">
+      <template #header><span>我的任务（执行责任人）</span></template>
+      <div style="display:flex; gap:10px; margin-bottom:12px">
+        <el-input v-model="myAccount" placeholder="工号，如 1001" style="width:200px" />
+        <el-button type="primary" :loading="loadingMine" @click="loadMyTasks">加载我的任务</el-button>
+      </div>
+      <el-table :data="myProblems" stripe empty-text="暂无待办任务（可点右上角手动输入问题ID查询）" max-height="260">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="title" label="标题" />
+        <el-table-column label="状态" width="100">
+          <template #default="{row}">
+            <el-tag :type="row.status === 1 ? 'warning' : 'danger'">{{ row.status === 1 ? '处理中' : '待复查' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template #default="{row}">
+            <el-button size="small" type="primary" @click="selectMyProblem(row)">上报进度</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
     <el-card>
       <div style="display:flex; gap:10px">
         <el-input v-model="problemId" placeholder="问题ID" style="width:200px" />
@@ -55,6 +77,48 @@ const searched = ref(false)
 const newProgress = ref(0)
 const newRemark = ref('')
 const submitting = ref(false)
+const myAccount = ref('')
+const myProblems = ref([])
+const loadingMine = ref(false)
+
+const parseJwtAccount = () => {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.sub || null
+  } catch (e) {
+    return null
+  }
+}
+
+myAccount.value = parseJwtAccount() || localStorage.getItem('account') || ''
+
+const loadMyTasks = async () => {
+  if (!myAccount.value) {
+    ElMessage.warning('请输入工号')
+    return
+  }
+  loadingMine.value = true
+  try {
+    const res = await request.get(`/supervise/problem/mine?account=${myAccount.value}`)
+    if (res.success) {
+      myProblems.value = res.data?.problems || []
+      if (myProblems.value.length === 0) {
+        ElMessage.info('当前没有待办任务')
+      }
+    }
+  } finally {
+    loadingMine.value = false
+  }
+}
+
+const selectMyProblem = (row) => {
+  problemId.value = String(row.id)
+  loadProgress()
+}
 
 const loadProgress = async () => {
   if (!problemId.value) return

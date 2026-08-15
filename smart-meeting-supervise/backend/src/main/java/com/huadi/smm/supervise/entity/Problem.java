@@ -17,6 +17,8 @@ public class Problem {
 
     private Integer sourceType;
 
+    private Long meetingId;
+
     private Long creatorId;
 
     private Long assigneeId;

@@ -1,5 +1,6 @@
 package com.huadi.smm.supervise.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.huadi.smm.supervise.entity.Problem;
 import com.huadi.smm.supervise.mapper.ProblemMapper;
@@ -7,6 +8,7 @@ import com.huadi.smm.supervise.service.ProblemService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem>
@@ -39,5 +41,14 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem>
         problem.setId(id);
         problem.setDeadline(deadline);
         return this.updateById(problem);
+    }
+
+    @Override
+    public List<Problem> listMyProblems(Long memberId) {
+        return this.list(new LambdaQueryWrapper<Problem>()
+                .eq(Problem::getAssigneeId, memberId)
+                .in(Problem::getStatus, 1, 2)
+                .orderByAsc(Problem::getDeadline)
+                .orderByDesc(Problem::getCreateTime));
     }
 }
