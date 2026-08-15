@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/base-level/**").permitAll() // 临时放行基础数据接口以便测试
                 .requestMatchers("/api/dashboard/high-level/**").hasRole("HIGH_LEVEL") // 高层决策人员权限
                 .requestMatchers("/api/dashboard/mid-level/**").hasAnyRole("MID_LEVEL", "HIGH_LEVEL") // 中层管理人员权限
+                .requestMatchers("/api/warn/**").permitAll() // 预警接口演示放行，权限在控制器按角色细化
+                .requestMatchers("/api/ai/**").permitAll() // 复盘报告接口演示放行，控制器内做"仅中层及以上"角色校验
                 .requestMatchers("/ws/**").permitAll() // WebSocket端点放行，实际中可在此处或拦截器加鉴权
                 .anyRequest().authenticated()
             );

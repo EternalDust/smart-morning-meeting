@@ -22,6 +22,10 @@
           <el-icon><WarningFilled /></el-icon>
           <span>风险预测</span>
         </el-menu-item>
+        <el-menu-item index="/review-report">
+          <el-icon><Document /></el-icon>
+          <span>复盘报告</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
