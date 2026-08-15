@@ -5,6 +5,8 @@ import com.huadi.smm.supervise.entity.Problem;
 import com.huadi.smm.supervise.service.ProblemService;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/supervise/problem")
@@ -40,6 +42,22 @@ public class ProblemController {
     @PutMapping("/status/{id}")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         problemService.updateStatus(id, status);
+        return Result.ok(null);
+    }
+
+    /**
+     * 设置截止时间
+     * PUT /api/supervise/problem/deadline/{id}?deadline=2026-08-20 18:00:00
+     */
+    @PutMapping("/deadline/{id}")
+    public Result<Void> updateDeadline(@PathVariable Long id, @RequestParam String deadline) {
+        LocalDateTime parsed;
+        try {
+            parsed = LocalDateTime.parse(deadline, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (Exception e) {
+            throw new IllegalArgumentException("截止时间格式应为 yyyy-MM-dd HH:mm:ss");
+        }
+        problemService.updateDeadline(id, parsed);
         return Result.ok(null);
     }
 }

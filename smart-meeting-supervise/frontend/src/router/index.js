@@ -2,8 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '../components/Layout.vue'
 import Dashboard from '../views/Dashboard.vue'
 import ProblemList from '../views/ProblemList.vue'
+import ProblemDetail from '../views/ProblemDetail.vue'
 import ProgressTrack from '../views/ProgressTrack.vue'
 import Statistics from '../views/Statistics.vue'
+
+// 统一门户登录：从 URL 上取 token 存入本地
+const urlToken = new URLSearchParams(window.location.search).get('token')
+if (urlToken) {
+    localStorage.setItem('token', urlToken)
+}
 
 const routes = [
     {
@@ -11,24 +18,25 @@ const routes = [
         component: Layout,
         redirect: '/dashboard',
         children: [
-            { path: '/dashboard', name: 'Dashboard', component: Dashboard },
-            { path: '/problems', name: 'ProblemList', component: ProblemList },
-            { path: '/progress', name: 'ProgressTrack', component: ProgressTrack },
-            { path: '/statistics', name: 'Statistics', component: Statistics }
+            { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
+            { path: '/problems', name: 'ProblemList', component: ProblemList, meta: { requiresAuth: true } },
+            { path: '/problems/:id', name: 'ProblemDetail', component: ProblemDetail, meta: { requiresAuth: true } },
+            { path: '/progress', name: 'ProgressTrack', component: ProgressTrack, meta: { requiresAuth: true } },
+            { path: '/statistics', name: 'Statistics', component: Statistics, meta: { requiresAuth: true } }
         ]
     }
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-// 删除这段代码 ↓
-// router.beforeEach((to, from, next) => {
-//   const token = localStorage.getItem('token')
-//   if (!token) {
-//     window.location.href = 'http://localhost:5000/'
-//   } else {
-//     next()
-//   }
-// })
+// 未登录时跳转统一门户
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('token')
+    if (to.meta.requiresAuth && !token) {
+        window.location.href = 'http://localhost:5000/'
+    } else {
+        next()
+    }
+})
 
 export default router

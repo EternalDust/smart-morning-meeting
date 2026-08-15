@@ -22,6 +22,11 @@ const routes = [
         path: 'risk-prediction',
         name: 'RiskPrediction',
         component: () => import('../views/RiskPrediction.vue')
+      },
+      {
+        path: 'review-report',
+        name: 'ReviewReport',
+        component: () => import('../views/ReviewReport.vue')
       }
     ]
   }

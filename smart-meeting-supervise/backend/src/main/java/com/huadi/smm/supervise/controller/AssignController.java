@@ -2,10 +2,15 @@ package com.huadi.smm.supervise.controller;
 
 import com.huadi.smm.supervise.dto.Result;
 import com.huadi.smm.supervise.entity.AssignRecord;
+import com.huadi.smm.supervise.entity.User;
+import com.huadi.smm.supervise.mapper.UserMapper;
 import com.huadi.smm.supervise.service.AssignService;
+import com.huadi.smm.supervise.vo.UserVo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -13,6 +18,9 @@ import java.util.Map;
 public class AssignController {
 
     private final AssignService assignService;
+
+    @Autowired
+    private UserMapper userMapper;
 
     public AssignController(AssignService assignService) {
         this.assignService = assignService;
@@ -35,11 +43,14 @@ public class AssignController {
      */
     @PostMapping("/manual")
     public Result<Void> manualAssign(@RequestBody Map<String, Object> params) {
-        Long problemId = Long.valueOf(params.get("problemId").toString());
-        Long userId = Long.valueOf(params.get("userId").toString());
-        Long operatorId = Long.valueOf(params.get("operatorId").toString());
+        Long problemId = params.get("problemId") != null ? Long.valueOf(params.get("problemId").toString()) : null;
+        Long userId = params.get("userId") != null ? Long.valueOf(params.get("userId").toString()) : null;
+        Long operatorId = params.get("operatorId") != null ? Long.valueOf(params.get("operatorId").toString()) : null;
         String reason = params.get("reason") != null ? params.get("reason").toString() : null;
 
+        if (problemId == null || userId == null) {
+            throw new IllegalArgumentException("problemId 和 userId 不能为空");
+        }
         assignService.manualAssign(problemId, userId, operatorId, reason);
         return Result.ok("改派成功", null);
     }
@@ -49,10 +60,23 @@ public class AssignController {
      * GET /api/supervise/assign/current/{problemId}
      */
     @GetMapping("/current/{problemId}")
-    public Result<Map<String, Long>> getCurrentAssignee(@PathVariable Long problemId) {
+    public Result<Map<String, Object>> getCurrentAssignee(@PathVariable Long problemId) {
         Long assigneeId = assignService.getCurrentAssignee(problemId);
-        Map<String, Long> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
         result.put("assigneeId", assigneeId);
+        if (assigneeId != null) {
+            User user = userMapper.selectById(assigneeId);
+            result.put("assigneeName", user != null ? user.getName() : null);
+        }
         return Result.ok(result);
+    }
+
+    /**
+     * 查询可分配的执行责任人
+     * GET /api/supervise/assign/users
+     */
+    @GetMapping("/users")
+    public Result<List<UserVo>> listAssignableUsers() {
+        return Result.ok(assignService.listAssignableUsers());
     }
 }

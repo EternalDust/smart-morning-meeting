@@ -1,0 +1,31 @@
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+
+// 统一 axios 实例：自动带 Token、统一处理后端 ApiResponse { success, code, msg, data }
+const request = axios.create({
+  baseURL: '/api',
+  timeout: 60000
+})
+
+request.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+request.interceptors.response.use(
+  response => {
+    const res = response.data
+    if (res && res.code === 200) {
+      return res.data
+    }
+    ElMessage.error(res?.msg || '请求失败')
+    return Promise.reject(new Error(res?.msg || '请求失败'))
+  },
+  error => {
+    ElMessage.error(error.response?.data?.msg || '网络异常')
+    return Promise.reject(error)
+  }
+)
+
+export default request

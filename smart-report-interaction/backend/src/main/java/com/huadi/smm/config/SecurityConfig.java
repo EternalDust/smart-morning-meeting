@@ -18,7 +18,7 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-            .antMatchers("/api/meeting/**", "/ws/**").permitAll()
+            .antMatchers("/api/meeting/**", "/api/analytics/**", "/ws/**").permitAll()
             .anyRequest().authenticated();
         return http.build();
     }

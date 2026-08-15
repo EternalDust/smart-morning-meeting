@@ -7,10 +7,20 @@
       </div>
       <el-table :data="problems" stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="title" label="标题" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column label="标题">
           <template #default="{row}">
-            <el-tag :type="row.status===0?'info':'success'">{{ row.status===0?'待分派':'处理中' }}</el-tag>
+            <router-link :to="`/problems/${row.id}`" style="color:#409EFF">{{ row.title }}</router-link>
+          </template>
+        </el-table-column>
+        <el-table-column label="分类" width="110">
+          <template #default="{row}">{{ getCategoryName(row.category) }}</template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="110">
+          <template #default="{row}">{{ getRiskName(row.riskLevel) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{row}">
+            <el-tag :type="getStatusType(row.status)">{{ getStatusName(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
@@ -21,6 +31,9 @@
       <el-form :model="newProblem">
         <el-form-item label="标题"><el-input v-model="newProblem.title" /></el-form-item>
         <el-form-item label="描述"><el-input v-model="newProblem.content" type="textarea" /></el-form-item>
+        <el-form-item label="截止时间">
+          <el-date-picker v-model="newProblem.deadline" type="datetime" placeholder="选择截止时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:100%" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showAdd=false">取消</el-button>
@@ -37,10 +50,15 @@ import request from '../api/request'
 
 const problems = ref([])
 const showAdd = ref(false)
-const newProblem = ref({ title: '', content: '' })
+const newProblem = ref({ title: '', content: '', deadline: null })
+
+const getCategoryName = (type) => ({ 1: '医疗类', 2: '运维类', 3: '管理类' }[type] || '未分类')
+const getRiskName = (level) => ({ 1: '一般', 2: '重要', 3: '紧急' }[level] || '未定')
+const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
+const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
 
 const loadProblems = async () => {
-  const res = await request.get('/supervise/problem/list?page=1&size=10')
+  const res = await request.get('/supervise/problem/list?page=1&size=100')
   if (res.success) problems.value = res.data?.records || []
 }
 
@@ -53,7 +71,7 @@ const addProblem = async () => {
   if (res.success) {
     ElMessage.success('添加成功')
     showAdd.value = false
-    newProblem.value = { title: '', content: '' }
+    newProblem.value = { title: '', content: '', deadline: null }
     loadProblems()
   }
 }

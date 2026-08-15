@@ -55,9 +55,19 @@ public class SignService {
         record.setSignType(signType);
         record.setSignTime(LocalDateTime.now().format(FMT));
 
-        int hour = LocalDateTime.now().getHour();
-        int minute = LocalDateTime.now().getMinute();
-        record.setSignStatus((hour > 8 || (hour == 8 && minute > 30)) ? 1 : 0);
+        int status = 0;
+        String startTime = meeting.getStartTime();
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            try {
+                LocalDateTime start = LocalDateTime.parse(startTime.trim(), FMT);
+                if (LocalDateTime.now().isAfter(start)) {
+                    status = 1;
+                }
+            } catch (Exception ignored) {
+                // 会议开始时间解析失败时按准时处理，避免误判迟到
+            }
+        }
+        record.setSignStatus(status);
 
         signInMapper.insert(record);
         attendee.setAttendStatus(1);
@@ -76,12 +86,6 @@ public class SignService {
         LambdaQueryWrapper<Attendee> qw = new LambdaQueryWrapper<>();
         qw.eq(Attendee::getMeetingId, meetingId);
         return attendeeMapper.selectCount(qw).intValue();
-    }
-
-    public int countSignedIn(Long meetingId) {
-        LambdaQueryWrapper<SignIn> qw = new LambdaQueryWrapper<>();
-        qw.eq(SignIn::getMeetingId, meetingId);
-        return signInMapper.selectCount(qw).intValue();
     }
 
     public int countByStatus(Long meetingId, Integer status) {

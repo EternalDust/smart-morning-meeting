@@ -64,6 +64,17 @@
             <el-option label="MongoDB" value="mongodb" />
           </el-select>
         </el-form-item>
+        <el-form-item label="数据域" prop="dataDomain">
+          <el-select v-model="form.dataDomain" placeholder="留空自动推断" clearable style="width:100%">
+            <el-option label="HIS 门诊住院" value="HIS" />
+            <el-option label="LIS 检验" value="LIS" />
+            <el-option label="EMR 电子病历" value="EMR" />
+            <el-option label="PACS 影像" value="PACS" />
+            <el-option label="DRUG 药品" value="DRUG" />
+            <el-option label="MEETING 晨会" value="MEETING" />
+            <el-option label="GENERAL 通用" value="GENERAL" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="连接配置" prop="configJson">
           <el-input v-model="form.configJson" type="textarea" :rows="4"
             placeholder='{"host":"192.168.1.100","port":3306}' />
@@ -98,6 +109,7 @@ const defaultForm = () => ({
   sourceCode: '',
   sourceName: '',
   sourceType: 'mysql',
+  dataDomain: '',
   configJson: '{}'
 })
 const form = reactive(defaultForm())

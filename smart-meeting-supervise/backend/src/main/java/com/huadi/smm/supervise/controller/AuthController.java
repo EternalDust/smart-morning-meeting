@@ -24,7 +24,7 @@ public class AuthController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody LoginDto loginDto) {
         // 从共享表 sm_gm_members 查询用户
-        User user = userMapper.findByAccount(loginDto.getAccount());
+        User user = userMapper.findByUserId(loginDto.getAccount());
         if (user == null) {
             return Result.fail(401, "账号不存在");
         }
@@ -33,10 +33,11 @@ public class AuthController {
         }
 
         // 生成 JWT Token
-        String token = jwtUtils.generateToken(user.getId(), user.getAccount());
+        String token = jwtUtils.generateToken(user.getId(), user.getUserId());
 
         Map<String, Object> result = new HashMap<>();
         result.put("userId", user.getId());
+        result.put("account", user.getUserId());
         result.put("userName", user.getName());
         result.put("role", user.getRole());
         result.put("token", token);

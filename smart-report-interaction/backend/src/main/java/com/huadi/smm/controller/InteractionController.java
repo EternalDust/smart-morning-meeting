@@ -30,6 +30,9 @@ public class InteractionController {
 
     @PostMapping("/message")
     public Result<?> sendMessage(@RequestBody Interaction msg) {
+        if (msg.getMeetingId() == null || msg.getUserId() == null || msg.getContent() == null || msg.getContent().trim().isEmpty()) {
+            return Result.fail(400, "参数缺失");
+        }
         try {
             Interaction result = interactionService.sendMessage(msg);
             try {
@@ -52,6 +55,24 @@ public class InteractionController {
             return Result.ok(interactionService.replyMessage(id, body.get("reply")));
         } catch (RuntimeException e) {
             return Result.fail(400, e.getMessage());
+        }
+    }
+
+    @PostMapping("/ai-reply/{id}")
+    public Result<?> aiReply(@PathVariable Long id) {
+        try {
+            Interaction result = interactionService.aiReply(id);
+            try {
+                Map<String, Object> wsMsg = new HashMap<>();
+                wsMsg.put("type", "interaction");
+                wsMsg.put("interactType", result.getInteractType());
+                wsMsg.put("userId", result.getUserId());
+                wsMsg.put("reply", result.getReply());
+                RealtimeServer.broadcast(result.getMeetingId(), mapper.writeValueAsString(wsMsg));
+            } catch (Exception ignored) {}
+            return Result.ok(result);
+        } catch (RuntimeException e) {
+            return Result.fail(500, "AI 答复生成失败：" + e.getMessage());
         }
     }
 

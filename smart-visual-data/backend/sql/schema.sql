@@ -90,7 +90,21 @@ CREATE TABLE `bi_chart_config` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='可视化大屏配置表';
 
--- 7. 平台人员操作日志表 (文档中字段属性属于操作日志)
+-- 7. 大模型晨会复盘报告表
+CREATE TABLE `bi_review_report` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '报告ID',
+  `title` varchar(255) NOT NULL COMMENT '报告标题',
+  `content` mediumtext COMMENT '报告内容(Markdown)',
+  `report_type` varchar(16) DEFAULT 'REVIEW' COMMENT '报告类型: REVIEW复盘报告 ADVICE管理决策建议',
+  `start_date` varchar(20) DEFAULT NULL COMMENT '统计开始日期',
+  `end_date` varchar(20) DEFAULT NULL COMMENT '统计结束日期',
+  `status` int DEFAULT '1' COMMENT '生成状态: 1真实生成 2模板模拟生成 0失败',
+  `create_by` varchar(64) DEFAULT NULL COMMENT '生成人',
+  `create_time` varchar(20) DEFAULT NULL COMMENT '生成时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='大模型晨会复盘报告表';
+
+-- 8. 平台人员操作日志表 (文档中字段属性属于操作日志)
 CREATE TABLE `sm_operation_log` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志 ID',
   `user_id` bigint DEFAULT NULL COMMENT '用户 ID',

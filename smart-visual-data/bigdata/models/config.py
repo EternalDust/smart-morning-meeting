@@ -54,11 +54,14 @@ LSTM_MODEL_PATH = MODEL_SAVE_DIR + "lstm_autoencoder.keras"
 SCALER_PATH = MODEL_SAVE_DIR + "scaler.pkl"
 
 # ── 数据库（MySQL — 写入 bi_warn_record 表） ──
+# 密码从环境变量读取（团队 README 约定禁止明文），未设置时回退本地演示默认值
+import os
+
 MYSQL_HOST = "localhost"
 MYSQL_PORT = 3306
 MYSQL_DB = "smart_meeting"
 MYSQL_USER = "root"
-MYSQL_PASSWORD = "hqh123"
+MYSQL_PASSWORD = os.environ.get("DB_PASSWORD", "hqh123")
 
 # ── Redis ──
 REDIS_HOST = "localhost"

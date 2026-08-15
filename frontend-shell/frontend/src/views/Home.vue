@@ -35,7 +35,9 @@ const systems = [
 
 const open = (url) => {
   const token = localStorage.getItem('token') || ''
-  window.open(url + '?token=' + encodeURIComponent(token), '_blank')
+  const userName = localStorage.getItem('userName') || ''
+  const query = '?token=' + encodeURIComponent(token) + '&userName=' + encodeURIComponent(userName)
+  window.open(url + query, '_blank')
 }
 
 const logout = () => {
