@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.huadi.smm.supervise.entity.Problem;
 import com.huadi.smm.supervise.entity.ProgressRecord;
+import com.huadi.smm.supervise.entity.User;
 import com.huadi.smm.supervise.mapper.ProblemMapper;
 import com.huadi.smm.supervise.mapper.ProgressMapper;
+import com.huadi.smm.supervise.mapper.UserMapper;
 import com.huadi.smm.supervise.service.ProgressService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,9 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
     @Autowired
     private ProblemMapper problemMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public boolean submitProgress(ProgressRecord record) {
         // 参数校验
@@ -26,6 +31,19 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
         }
         if (record.getProgress() == null || record.getProgress() < 0 || record.getProgress() > 100) {
             throw new IllegalArgumentException("进度值必须在0-100之间");
+        }
+        // 权限校验：上报人必须是当前执行责任人（或管理员），未登录/演示场景（reporterId 为空）放行
+        if (record.getReporterId() != null) {
+            Problem problem = problemMapper.selectById(record.getProblemId());
+            if (problem != null && problem.getAssigneeId() != null
+                    && !problem.getAssigneeId().equals(record.getReporterId())) {
+                User reporter = userMapper.selectById(record.getReporterId());
+                boolean isAdmin = reporter != null && reporter.getUserId() != null
+                        && reporter.getUserId().startsWith("2");
+                if (!isAdmin) {
+                    throw new IllegalArgumentException("仅当前执行责任人可上报进度");
+                }
+            }
         }
         boolean saved = this.save(record);
         // 闭环：进度达到100%时，处理中的问题自动进入“待复查”
