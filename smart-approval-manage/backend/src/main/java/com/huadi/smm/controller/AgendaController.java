@@ -15,7 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.validation.Valid;
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -65,7 +67,20 @@ public class AgendaController {
         meeting.setEndTime(req.getEndTime());
         meeting.setLocation(req.getLocation());
         meeting.setCreatorId(1L);
-        return Result.ok(meetingService.save(meeting));
+        MeetingInfo saved = meetingService.save(meeting);
+
+        if (req.getAttendeeIds() != null && !req.getAttendeeIds().isEmpty()) {
+            for (Long userId : req.getAttendeeIds()) {
+                MeetingAttendee attendee = new MeetingAttendee();
+                attendee.setMeetingId(saved.getId());
+                attendee.setUserId(userId);
+                attendee.setRoleType(2);
+                attendee.setAttendStatus(0);
+                attendee.setInviteTime(new Date());
+                attendeeService.addAttendee(attendee);
+            }
+        }
+        return Result.ok(saved);
     }
 
     // ========== 议程 ==========
@@ -181,6 +196,33 @@ public class AgendaController {
     @DeleteMapping("/materials/{materialId}")
     public Result<Boolean> deleteMaterial(@PathVariable Long materialId) {
         materialService.deleteMaterial(materialId);
+        return Result.ok(true);
+    }
+
+    @Autowired
+    private LlmAuditService llmAuditService;
+
+    @PostMapping("/materials/{materialId}/audit")
+    public Result<String> auditMaterial(@PathVariable Long materialId, @RequestBody Map<String, String> body) {
+        String content = body.getOrDefault("content", "");
+        String result = llmAuditService.auditMaterial("材料" + materialId, content);
+        return Result.ok(result);
+    }
+
+    @PostMapping("/{meetingId}/pre-opinion")
+    public Result<String> preOpinion(@PathVariable Long meetingId) {
+        MeetingInfo meeting = meetingService.getById(meetingId);
+        if (meeting == null) return Result.fail("会议不存在", 404);
+        String result = llmAuditService.generatePreOpinion(meeting.getTitle(), "会议材料摘要待补充");
+        return Result.ok(result);
+    }
+
+    @PostMapping("/{meetingId}/publish")
+    public Result<Boolean> publishMeeting(@PathVariable Long meetingId) {
+        boolean result = meetingService.publishMeeting(meetingId);
+        if (!result) {
+            return Result.fail("发布失败，会议不存在或状态不允许", 400);
+        }
         return Result.ok(true);
     }
 }

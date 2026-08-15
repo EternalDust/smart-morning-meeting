@@ -4,6 +4,7 @@ import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import java.util.Date;
+import java.util.List;
 
 @Data
 public class MeetingCreateRequest {
@@ -16,4 +17,5 @@ public class MeetingCreateRequest {
     private Date startTime;
     private Date endTime;
     private String location;
+    private List<Long> attendeeIds;
 }

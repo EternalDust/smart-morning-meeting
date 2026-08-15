@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/smart_meeting?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/smart_meeting?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -34,3 +34,9 @@ mybatis-plus:
 
 upload:
   path: D:/uploads/materials/
+
+llm:
+  api-url: https://api.openai.com/v1/chat/completions
+  api-key: ${AI_API_KEY:}
+  model: gpt-3.5-turbo
+  temperature: 0.7

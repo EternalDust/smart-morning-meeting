@@ -2,7 +2,7 @@
   <div class="page-card">
     <div class="page-header">
       <h2 class="page-title">新建晨会</h2>
-      <p class="page-desc">填写会议基础信息并提交创建</p>
+      <p class="page-desc">填写会议基础信息并选择参会人员</p>
     </div>
 
     <el-form :model="form" label-width="100px" style="max-width:600px">
@@ -25,6 +25,22 @@
       <el-form-item label="结束时间">
         <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width:100%" />
       </el-form-item>
+      <el-form-item label="参会人员">
+        <el-select
+            v-model="form.attendeeIds"
+            multiple
+            collapse-tags
+            placeholder="请选择参会人员"
+            style="width:100%"
+        >
+          <el-option
+              v-for="m in memberList"
+              :key="m.id"
+              :label="m.realName + ' (' + m.workNo + ')'"
+              :value="m.id"
+          />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="submit">提交创建</el-button>
         <el-button @click="router.back()">取消</el-button>
@@ -34,18 +50,29 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../api/request.js'
 
 const router = useRouter()
+const memberList = ref([])
+
 const form = reactive({
   title: '',
   meetingType: 1,
   location: '',
   startTime: null,
-  endTime: null
+  endTime: null,
+  attendeeIds: []
+})
+
+onMounted(async () => {
+  try {
+    memberList.value = await request.get('/members')
+  } catch (e) {
+    memberList.value = []
+  }
 })
 
 async function submit() {

@@ -57,12 +57,12 @@ function goRecords(id) { router.push('/meetings/' + id + '/records') }
 function goAttendees(id) { router.push('/meetings/' + id + '/attendees') }
 
 function statusText(status) {
-  const map = { 0: '草稿', 1: '审批中', 2: '已通过', 3: '已驳回', 4: '已归档' }
+  const map = {0: '草稿', 1: '审批中', 2: '已通过', 3: '已驳回', 4: '已归档', 5: '已发布'}
   return map[status] ?? '未知'
 }
 
 function statusType(status) {
-  const map = { 0: 'info', 1: 'warning', 2: 'success', 3: 'danger', 4: 'success' }
+  const map = {0: 'info', 1: 'warning', 2: 'success', 3: 'danger', 4: 'success', 5: 'primary'}
   return map[status] ?? 'info'
 }
 

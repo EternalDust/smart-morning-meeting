@@ -38,15 +38,25 @@ public class MeetingService {
         return meeting;
     }
 
-    public boolean archiveMeeting(Long meetingId) {
+    public boolean publishMeeting(Long meetingId) {
         MeetingInfo meeting = meetingInfoMapper.selectById(meetingId);
         if (meeting == null || meeting.getApproveStatus() == null || meeting.getApproveStatus() != 2) {
+            return false;
+        }
+        meeting.setApproveStatus(5);
+        meeting.setUpdateTime(new Date());
+        meetingInfoMapper.updateById(meeting);
+        return true;
+    }
+
+    public boolean archiveMeeting(Long meetingId) {
+        MeetingInfo meeting = meetingInfoMapper.selectById(meetingId);
+        if (meeting == null || meeting.getApproveStatus() == null || meeting.getApproveStatus() != 5) {
             return false;
         }
         meeting.setApproveStatus(4);
         meeting.setUpdateTime(new Date());
         meetingInfoMapper.updateById(meeting);
-        eventProducer.send(MeetingEvent.of("APPROVE_STATUS_CHANGED", meetingId, 2, 4));
         return true;
     }
 }

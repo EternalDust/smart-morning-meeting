@@ -8,10 +8,11 @@ import java.util.Date;
 
 public class JwtUtil {
 
-    private static final String SECRET = "huadi-smart-approval-secret-key-123456";
+    private static final String SECRET = "smart-morning-meeting-2026";
     private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     private static final long EXPIRE = 86400000;
 
+    @SuppressWarnings("unused")
     public static String generateToken(Long userId, String role) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
@@ -23,12 +24,20 @@ public class JwtUtil {
     }
 
     public static String parseUserId(String token) {
-        return Jwts.parser().verifyWith(KEY).build()
-                .parseSignedClaims(token).getPayload().getSubject();
+        return Jwts.parser()
+                .verifyWith(KEY)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
     }
 
     public static String parseRole(String token) {
-        return Jwts.parser().verifyWith(KEY).build()
-                .parseSignedClaims(token).getPayload().get("role", String.class);
+        return Jwts.parser()
+                .verifyWith(KEY)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
     }
 }

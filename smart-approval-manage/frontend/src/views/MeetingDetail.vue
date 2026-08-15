@@ -72,6 +72,9 @@
       <el-button type="danger" @click="handleApprove(2)">驳回</el-button>
     </div>
     <div class="action-bar" v-if="meeting.approveStatus === 2">
+      <el-button type="primary" @click="publishMeeting">发布会议</el-button>
+    </div>
+    <div class="action-bar" v-if="meeting.approveStatus === 5">
       <el-button type="warning" @click="archiveMeeting">归档会议</el-button>
     </div>
 
@@ -219,18 +222,28 @@ function formatTime(time) {
 }
 
 function statusText(status) {
-  const map = {0: '草稿', 1: '审批中', 2: '已通过', 3: '已驳回', 4: '已归档'}
+  const map = {0: '草稿', 1: '审批中', 2: '已通过', 3: '已驳回', 4: '已归档', 5: '已发布'}
   return map[status] ?? '未知'
 }
 
 function statusType(status) {
-  const map = {0: 'info', 1: 'warning', 2: 'success', 3: 'danger', 4: 'success'}
+  const map = {0: 'info', 1: 'warning', 2: 'success', 3: 'danger', 4: 'success', 5: 'primary'}
   return map[status] ?? 'info'
 }
 
 function formatMeetingType(type) {
   const map = {1: '科室例会', 2: '质量复盘', 3: '专题讨论'}
   return map[type] ?? ('类型' + type)
+}
+
+async function publishMeeting() {
+  try {
+    await request.post('/agenda/' + meeting.value.id + '/publish')
+    ElMessage.success('发布成功')
+    meeting.value.approveStatus = 5
+  } catch (e) {
+    ElMessage.error(e.message || '发布失败')
+  }
 }
 </script>
 
