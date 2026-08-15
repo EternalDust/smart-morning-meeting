@@ -68,13 +68,17 @@ export struct SignInPageContent {
     } catch (e) {}
   }
 
-  connectWebSocket() {
+  connectWebSocket(): void {
     this.ws = webSocket.createWebSocket()
-    this.ws.connect('ws://10.0.2.2:8081/api/meeting/realtime/push/1', (err: Error, value: string) => {})
-    this.ws.on('message', (err: Error, value: string) => {
-      try { const msg = JSON.parse(value as string); if (msg.type === 'sign') this.loadData() } catch (e) {}
+    this.ws.connect('ws://10.0.2.2:8081/api/meeting/realtime/push/1', (err, value) => {})
+    this.ws.on('message', (err, value) => {
+      try {
+        const text: string = typeof value === 'string' ? value : ''
+        const msg = JSON.parse(text) as Record<string, string>
+        if (msg['type'] === 'sign') this.loadData()
+      } catch (e) {}
     })
-    this.ws.on('close', (err: Error, value: string) => {
+    this.ws.on('close', (err, value) => {
       if (this.wsDestroyed) return
       setTimeout(() => this.connectWebSocket(), 3000)
     })

@@ -28,12 +28,12 @@ export struct ReportPageContent {
   async loadData() {
     this.isLoading = true
     try {
-      const [speechRes, summaryRes] = await Promise.all([
-        ApiService.getSpeechList(1), ApiService.getSummary(1)
-      ])
-      const data = speechRes.data as SpeechListData
-      this.speeches = data.records
-      this.nameMap = data.nameMap
+      const speechRes = await ApiService.getSpeechList(1)
+      const summaryRes = await ApiService.getSummary(1)
+      if (speechRes.data) {
+        this.speeches = speechRes.data.records
+        this.nameMap = speechRes.data.nameMap
+      }
       this.applySummary(summaryRes.data)
     } finally { this.isLoading = false }
     try {

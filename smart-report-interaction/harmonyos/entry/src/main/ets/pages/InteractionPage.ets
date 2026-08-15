@@ -48,8 +48,9 @@ export struct InteractionPageContent {
     } finally { this.isLoading = false }
     try {
       const s = await ApiService.getSignList(1)
-      const d = s.data as Record<string, Object>
-      this.allAttendees = (d['nameMap'] as Record<number, string>) || {}
+      if (s.data) {
+        this.allAttendees = s.data.nameMap
+      }
     } catch (e) {}
     try {
       const tp = await ApiService.getTimePattern()
@@ -57,13 +58,17 @@ export struct InteractionPageContent {
     } catch (e) {}
   }
 
-  connectWebSocket() {
+  connectWebSocket(): void {
     this.ws = webSocket.createWebSocket()
-    this.ws.connect('ws://10.0.2.2:8081/api/meeting/realtime/push/1', (err: Error, value: string) => {})
-    this.ws.on('message', (err: Error, value: string) => {
-      try { const msg = JSON.parse(value as string); if (msg.type === 'interaction') this.loadData() } catch (e) {}
+    this.ws.connect('ws://10.0.2.2:8081/api/meeting/realtime/push/1', (err, value) => {})
+    this.ws.on('message', (err, value) => {
+      try {
+        const text: string = typeof value === 'string' ? value : ''
+        const msg = JSON.parse(text) as Record<string, string>
+        if (msg['type'] === 'interaction') this.loadData()
+      } catch (e) {}
     })
-    this.ws.on('close', (err: Error, value: string) => {
+    this.ws.on('close', (err, value) => {
       if (this.wsDestroyed) return
       setTimeout(() => this.connectWebSocket(), 3000)
     })
@@ -151,7 +156,7 @@ export struct InteractionPageContent {
                         .height(28).fontSize(12).margin({ top: 6, left: 8 })
                         .backgroundColor('#10B981').borderRadius(6)
                         .onClick(() => this.openReply(item))
-                    }.width('100%').alignItems(HorizontalAlign.Start)
+                    }.width('100%').justifyContent(FlexAlign.Start)
                   }
                   if (item.reply) {
                     Text(`回复：${item.reply}`).fontSize(13).fontColor('#1E293B')
