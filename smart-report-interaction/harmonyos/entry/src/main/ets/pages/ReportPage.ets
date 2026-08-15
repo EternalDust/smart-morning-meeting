@@ -67,6 +67,7 @@ export struct ReportPageContent {
   }
 
   build() {
+    Scroll() {
     Column() {
       Column() {
         Text('语音实时转写').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#2563EB')
@@ -123,23 +124,19 @@ export struct ReportPageContent {
       if (this.speeches.length === 0) {
         EmptyState({ message: '暂无发言记录' })
       } else {
-        List() {
-          ForEach(this.speeches, (item: SpeechRecord) => {
-            ListItem() {
-              Column() {
-                Row() {
-                  Text(this.nameMap[item.speakerId] || `用户${item.speakerId}`)
-                    .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2563EB')
-                  Text(item.speechTime).fontSize(11).fontColor('#94A3B8').margin({ left: 8 })
-                }
-                Text(item.content).fontSize(14).fontColor('#475569').margin({ top: 4 }).maxLines(3)
-              }
-              .padding(12).width('100%')
-              .backgroundColor('#FFFFFF').borderRadius(8)
-              .margin({ top: 6, left: 12, right: 12 })
+        ForEach(this.speeches, (item: SpeechRecord) => {
+          Column() {
+            Row() {
+              Text(this.nameMap[item.speakerId] || `用户${item.speakerId}`)
+                .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2563EB')
+              Text(item.speechTime).fontSize(11).fontColor('#94A3B8').margin({ left: 8 })
             }
-          })
-        }.layoutWeight(1)
+            Text(item.content).fontSize(14).fontColor('#475569').margin({ top: 4 }).maxLines(3)
+          }
+          .padding(12).width('100%')
+          .backgroundColor('#FFFFFF').borderRadius(8)
+          .margin({ top: 6, left: 12, right: 12 })
+        })
       }
 
       if (this.qualityScore > 0) {
@@ -173,6 +170,8 @@ export struct ReportPageContent {
         .width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(8)
         .margin({ left: 12, right: 12, top: 8, bottom: 12 })
       }
+    }
+    .width('100%')
     }
     .width('100%').height('100%')
   }
