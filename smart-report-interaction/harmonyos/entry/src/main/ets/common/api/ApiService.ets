@@ -1,6 +1,6 @@
 import { HttpClient } from './HttpClient'
 import { ApiResponse } from '../../model/ApiResponse'
-import { SignRecord, SignStats } from '../../model/SignRecord'
+import { SignRecord } from '../../model/SignRecord'
 import { SpeechRecord } from '../../model/SpeechRecord'
 import { InteractionMessage } from '../../model/InteractionMessage'
 
@@ -44,66 +44,77 @@ export interface SummaryData {
   medicalEntities: string[]
 }
 
+interface LoginReq { userId: string; password: string }
+interface SignInReq { meetingId: number; userId: number; signType: number }
+interface SpeechReq { meetingId: number; speakerId: number; content: string }
+interface MessageReq { meetingId: number; userId: number; interactType: number; content: string }
+interface ReplyReq { reply: string }
+
 export class ApiService {
-  static login(userId: string, password: string) {
-    return HttpClient.post<ApiResponse<LoginData>>('/api/auth/login', { userId, password })
+  static login(userId: string, password: string): Promise<ApiResponse<LoginData>> {
+    const body: LoginReq = { userId: userId, password: password }
+    return HttpClient.post<LoginData>('/api/auth/login', body)
   }
 
-  static signIn(meetingId: number, userId: number, signType: number = 2) {
-    return HttpClient.post<ApiResponse<SignRecord>>('/api/report/meeting/sign/in', { meetingId, userId, signType })
+  static signIn(meetingId: number, userId: number, signType: number = 2): Promise<ApiResponse<SignRecord>> {
+    const body: SignInReq = { meetingId: meetingId, userId: userId, signType: signType }
+    return HttpClient.post<SignRecord>('/api/report/meeting/sign/in', body)
   }
 
-  static getSignList(meetingId: number) {
-    return HttpClient.get<ApiResponse<SignListData>>(`/api/report/meeting/sign/list/${meetingId}`)
+  static getSignList(meetingId: number): Promise<ApiResponse<SignListData>> {
+    return HttpClient.get<SignListData>(`/api/report/meeting/sign/list/${meetingId}`)
   }
 
-  static saveSpeech(meetingId: number, speakerId: number, content: string) {
-    return HttpClient.post<ApiResponse<SpeechRecord>>('/api/report/meeting/speech/save', { meetingId, speakerId, content })
+  static saveSpeech(meetingId: number, speakerId: number, content: string): Promise<ApiResponse<SpeechRecord>> {
+    const body: SpeechReq = { meetingId: meetingId, speakerId: speakerId, content: content }
+    return HttpClient.post<SpeechRecord>('/api/report/meeting/speech/save', body)
   }
 
-  static getSpeechList(meetingId: number) {
-    return HttpClient.get<ApiResponse<SpeechListData>>(`/api/report/meeting/speech/list/${meetingId}`)
+  static getSpeechList(meetingId: number): Promise<ApiResponse<SpeechListData>> {
+    return HttpClient.get<SpeechListData>(`/api/report/meeting/speech/list/${meetingId}`)
   }
 
-  static getSummary(meetingId: number) {
-    return HttpClient.get<ApiResponse<SummaryData>>(`/api/report/meeting/summary/${meetingId}`)
+  static getSummary(meetingId: number): Promise<ApiResponse<SummaryData>> {
+    return HttpClient.get<SummaryData>(`/api/report/meeting/summary/${meetingId}`)
   }
 
-  static generateSummary(meetingId: number) {
-    return HttpClient.post<ApiResponse<SummaryData>>(`/api/report/meeting/summary/generate/${meetingId}`)
+  static generateSummary(meetingId: number): Promise<ApiResponse<SummaryData>> {
+    return HttpClient.post<SummaryData>(`/api/report/meeting/summary/generate/${meetingId}`)
   }
 
-  static sendMessage(meetingId: number, userId: number, interactType: number, content: string) {
-    return HttpClient.post<ApiResponse<InteractionMessage>>('/api/report/meeting/interaction/message', { meetingId, userId, interactType, content })
+  static sendMessage(meetingId: number, userId: number, interactType: number, content: string): Promise<ApiResponse<InteractionMessage>> {
+    const body: MessageReq = { meetingId: meetingId, userId: userId, interactType: interactType, content: content }
+    return HttpClient.post<InteractionMessage>('/api/report/meeting/interaction/message', body)
   }
 
-  static replyMessage(messageId: number, reply: string) {
-    return HttpClient.post<ApiResponse<InteractionMessage>>(`/api/report/meeting/interaction/reply/${messageId}`, { reply })
+  static replyMessage(messageId: number, reply: string): Promise<ApiResponse<InteractionMessage>> {
+    const body: ReplyReq = { reply: reply }
+    return HttpClient.post<InteractionMessage>(`/api/report/meeting/interaction/reply/${messageId}`, body)
   }
 
-  static aiAnswer(messageId: number) {
-    return HttpClient.post<ApiResponse<InteractionMessage>>(`/api/report/meeting/interaction/ai-reply/${messageId}`)
+  static aiAnswer(messageId: number): Promise<ApiResponse<InteractionMessage>> {
+    return HttpClient.post<InteractionMessage>(`/api/report/meeting/interaction/ai-reply/${messageId}`)
   }
 
-  static getInteractionList(meetingId: number, type?: number) {
+  static getInteractionList(meetingId: number, type?: number): Promise<ApiResponse<InteractionListData>> {
     let path = `/api/report/meeting/interaction/list/${meetingId}`
     if (type !== undefined && type > 0) path += `?type=${type}`
-    return HttpClient.get<ApiResponse<InteractionListData>>(path)
+    return HttpClient.get<InteractionListData>(path)
   }
 
-  static getInteractionStats(meetingId: number) {
-    return HttpClient.get<ApiResponse<InteractionStats>>(`/api/report/meeting/interaction/stats/${meetingId}`)
+  static getInteractionStats(meetingId: number): Promise<ApiResponse<InteractionStats>> {
+    return HttpClient.get<InteractionStats>(`/api/report/meeting/interaction/stats/${meetingId}`)
   }
 
-  static getMeetingAnalytics(meetingId: number) {
-    return HttpClient.get<ApiResponse<Object>>(`/api/report/analytics/meeting/${meetingId}`)
+  static getMeetingAnalytics(meetingId: number): Promise<ApiResponse<Record<string, Object>>> {
+    return HttpClient.get<Record<string, Object>>(`/api/report/analytics/meeting/${meetingId}`)
   }
 
-  static getWeeklyTrend() {
-    return HttpClient.get<ApiResponse<Array<Object>>>('/api/report/analytics/trend/weekly')
+  static getWeeklyTrend(): Promise<ApiResponse<Array<Record<string, Object>>>> {
+    return HttpClient.get<Array<Record<string, Object>>>('/api/report/analytics/trend/weekly')
   }
 
-  static getTimePattern() {
-    return HttpClient.get<ApiResponse<Array<Object>>>('/api/report/analytics/trend/time')
+  static getTimePattern(): Promise<ApiResponse<Array<Record<string, Object>>>> {
+    return HttpClient.get<Array<Record<string, Object>>>('/api/report/analytics/trend/time')
   }
 }

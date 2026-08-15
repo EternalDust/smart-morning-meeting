@@ -9,36 +9,36 @@ export class TokenManager {
   private static prefs: preferences.Preferences | null = null
 
   static async init(context: Context): Promise<void> {
-    this.prefs = await preferences.getPreferences(context, STORE_NAME)
+    TokenManager.prefs = await preferences.getPreferences(context, STORE_NAME)
   }
 
   static async saveToken(token: string): Promise<void> {
-    await this.prefs?.put(KEY_TOKEN, token)
-    await this.prefs?.flush()
+    await TokenManager.prefs?.put(KEY_TOKEN, token)
+    await TokenManager.prefs?.flush()
   }
 
   static async getToken(): Promise<string> {
-    return await this.prefs?.get(KEY_TOKEN, '') as string ?? ''
+    return await TokenManager.prefs?.get(KEY_TOKEN, '') as string ?? ''
   }
 
   static async saveUser(userId: string, userName: string): Promise<void> {
-    await this.prefs?.put(KEY_USER_ID, userId)
-    await this.prefs?.put(KEY_USER_NAME, userName)
-    await this.prefs?.flush()
+    await TokenManager.prefs?.put(KEY_USER_ID, userId)
+    await TokenManager.prefs?.put(KEY_USER_NAME, userName)
+    await TokenManager.prefs?.flush()
   }
 
   static async getUserId(): Promise<string> {
-    return await this.prefs?.get(KEY_USER_ID, '') as string ?? ''
+    return await TokenManager.prefs?.get(KEY_USER_ID, '') as string ?? ''
   }
 
   static async getUserName(): Promise<string> {
-    return await this.prefs?.get(KEY_USER_NAME, '') as string ?? ''
+    return await TokenManager.prefs?.get(KEY_USER_NAME, '') as string ?? ''
   }
 
   static async clear(): Promise<void> {
-    await this.prefs?.delete(KEY_TOKEN)
-    await this.prefs?.delete(KEY_USER_ID)
-    await this.prefs?.delete(KEY_USER_NAME)
-    await this.prefs?.flush()
+    await TokenManager.prefs?.delete(KEY_TOKEN)
+    await TokenManager.prefs?.delete(KEY_USER_ID)
+    await TokenManager.prefs?.delete(KEY_USER_NAME)
+    await TokenManager.prefs?.flush()
   }
 }

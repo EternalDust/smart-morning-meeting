@@ -1,12 +1,20 @@
 import router from '@ohos.router'
 import { TokenManager } from '../common/utils/TokenManager'
+import { SignInPageContent } from './SignInPage'
+import { ReportPageContent } from './ReportPage'
+import { InteractionPageContent } from './InteractionPage'
+
+interface TabItem {
+  title: string
+  icon: Resource
+}
 
 @Entry
 @Component
 struct HomePage {
   @State currentTab: number = 0
   @State userName: string = ''
-  private tabs: Array<{ title: string, icon: Resource }> = [
+  private tabs: Array<TabItem> = [
     { title: '签到', icon: $r('app.media.tab_sign') },
     { title: '汇报', icon: $r('app.media.tab_report') },
     { title: '互动', icon: $r('app.media.tab_interact') }
