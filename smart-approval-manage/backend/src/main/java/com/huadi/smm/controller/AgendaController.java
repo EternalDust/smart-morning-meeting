@@ -1,11 +1,16 @@
 package com.huadi.smm.controller;
 
 import com.huadi.smm.config.Result;
+import com.huadi.smm.dao.ApproveTaskMapper;
 import com.huadi.smm.dto.AiGenerateRequest;
 import com.huadi.smm.dto.HandleApproveRequest;
 import com.huadi.smm.dto.MeetingCreateRequest;
 import com.huadi.smm.entity.*;
 import com.huadi.smm.service.*;
+import com.huadi.smm.service.ApproveFlowEngine;
+import com.huadi.smm.service.BatchApproveService;
+import com.huadi.smm.service.LlmAuditService;
+import com.huadi.smm.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.annotation.Validated;
@@ -97,24 +102,27 @@ public class AgendaController {
         }
     }
 
-    // ========== 审批 ==========
+    @Autowired
+    private ApproveFlowEngine approveFlowEngine;
+    @Autowired
+    private ApproveTaskMapper approveTaskMapper;
+
     @PostMapping("/{meetingId}/submit")
     public Result<Boolean> submitApprove(@PathVariable Long meetingId) {
-        boolean result = approveService.submitApprove(meetingId);
-        if (!result) {
-            return Result.fail("提交审批失败，会议不存在或状态不允许", 400);
-        }
+        approveFlowEngine.start(meetingId, 1L);
         return Result.ok(true);
     }
 
     @PostMapping("/{meetingId}/handle")
     public Result<Boolean> handleApprove(@PathVariable Long meetingId,
                                          @Valid @RequestBody HandleApproveRequest data) {
-        boolean result = approveService.handleApprove(meetingId, data.getApproverId(), data.getAction(),
-                data.getOpinion());
-        if (!result) {
-            return Result.fail("审批处理失败，会议不存在或状态不允许", 400);
-        }
+        List<ApproveTask> tasks = approveTaskMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ApproveTask>()
+                        .eq("meeting_id", meetingId)
+                        .eq("approver_id", data.getApproverId())
+                        .eq("status", 0));
+        if (tasks.isEmpty()) return Result.fail("没有待审批任务", 400);
+        approveFlowEngine.handle(tasks.get(0).getId(), data.getAction(), data.getOpinion());
         return Result.ok(true);
     }
 
@@ -190,6 +198,14 @@ public class AgendaController {
         material.setFileSize(file.getSize());
 
         materialService.saveMaterial(material);
+
+        try {
+            String auditResult = llmAuditService.auditMaterial(material.getMaterialName(), "材料内容待提取");
+            System.out.println("[合规预审] materialId=" + material.getId() + ", result=" + auditResult);
+        } catch (Exception e) {
+            System.out.println("[合规预审] 调用失败: " + e.getMessage());
+        }
+
         return Result.ok(material);
     }
 
@@ -224,5 +240,31 @@ public class AgendaController {
             return Result.fail("发布失败，会议不存在或状态不允许", 400);
         }
         return Result.ok(true);
+    }
+
+    @Autowired
+    private BatchApproveService batchApproveService;
+
+    @PostMapping("/batch-archive")
+    public Result<String> batchArchive(@RequestBody List<Long> meetingIds) {
+        batchApproveService.batchArchive(meetingIds);
+        return Result.ok("批量归档任务已提交");
+    }
+
+    @GetMapping("/meetings/search")
+    public Result<List<MeetingInfo>> search(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Integer approveStatus,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<MeetingInfo> qw = new
+                com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        if (title != null && !title.isEmpty()) qw.like("title", title);
+        if (approveStatus != null) qw.eq("approve_status", approveStatus);
+        if (startDate != null) qw.ge("DATE(start_time)", startDate);
+        if (endDate != null) qw.le("DATE(end_time)", endDate);
+        qw.orderByDesc("create_time");
+        return Result.ok(meetingService.list(qw));
     }
 }

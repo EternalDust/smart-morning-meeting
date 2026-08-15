@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     @SuppressWarnings("SpringBootConfigurationProperties")
-    @Value("${upload.path}")
+    @Value("${upload.path:./uploads/materials}")
     private String uploadPath;
 
     @Override

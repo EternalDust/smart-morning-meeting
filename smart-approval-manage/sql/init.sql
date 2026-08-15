@@ -95,3 +95,36 @@ CREATE TABLE IF NOT EXISTS sm_approve_record (
                                                  CONSTRAINT sm_approve_record_ibfk_1 FOREIGN KEY (meeting_id) REFERENCES sm_meeting_info (id),
                                                  CONSTRAINT sm_approve_record_ibfk_2 FOREIGN KEY (process_id) REFERENCES sm_approve_process_def (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 会议绑定流程定义
+ALTER TABLE sm_meeting_info ADD COLUMN process_id bigint DEFAULT NULL AFTER approve_status;
+
+-- 审批任务表（记录每个节点上每个审批人的任务）
+CREATE TABLE IF NOT EXISTS sm_approve_task (
+                                               id bigint NOT NULL AUTO_INCREMENT,
+                                               meeting_id bigint NOT NULL,
+                                               node_id varchar(50) NOT NULL,
+                                               node_type varchar(20) NOT NULL,
+                                               approver_id bigint NOT NULL,
+                                               status int DEFAULT 0 COMMENT '0待审批 1通过 2驳回',
+                                               action int DEFAULT NULL,
+                                               opinion varchar(512) DEFAULT NULL,
+                                               approve_time datetime DEFAULT NULL,
+                                               PRIMARY KEY (id),
+                                               KEY meeting_id (meeting_id),
+                                               KEY node_id (node_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS sm_audit_log (
+                                            id bigint NOT NULL AUTO_INCREMENT,
+                                            operation_type varchar(50) NOT NULL,
+                                            target_id bigint DEFAULT NULL,
+                                            target_type varchar(50) DEFAULT NULL,
+                                            operator_id bigint DEFAULT NULL,
+                                            operator_name varchar(50) DEFAULT NULL,
+                                            old_value text,
+                                            new_value text,
+                                            ip_address varchar(50) DEFAULT NULL,
+                                            create_time datetime DEFAULT NULL,
+                                            PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

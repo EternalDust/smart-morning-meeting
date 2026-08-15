@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+    <hashTree>
+      <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="SmartApprovalTest" enabled="true">
+        <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+        <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel"
+  testclass="Arguments" enabled="true">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+      </TestPlan>
+      <hashTree>
+        <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="UserGroup" enabled="true">
+          <stringProp name="ThreadGroup.num_threads">20</stringProp>
+          <stringProp name="ThreadGroup.ramp_time">5</stringProp>
+          <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        </ThreadGroup>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="CreateMeeting"
+  enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel"
+  testclass="Arguments" enabled="true">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">{&quot;title&quot;:&quot;JMeterTest-${__threadNum}&quot;,&quot;meeti
+  ngType&quot;:1,&quot;deptId&quot;:1,&quot;hostId&quot;:1,&quot;location&quot;:&quot;会议室A&quot;}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">8082</stringProp>
+            <stringProp name="HTTPSampler.path">/api/agenda/meetings</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Headers" enabled="true">
+              <collectionProp name="HeaderManager.headers">
+                <elementProp name="" elementType="Header">
+                  <stringProp name="Header.name">Content-Type</stringProp>
+                  <stringProp name="Header.value">application/json</stringProp>
+                </elementProp>
+                <elementProp name="" elementType="Header">
+                  <stringProp name="Header.name">Authorization</stringProp>
+                  <stringProp name="Header.value">Bearer 你的JWT</stringProp>
+                </elementProp>
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </jmeterTestPlan>

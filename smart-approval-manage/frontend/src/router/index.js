@@ -18,7 +18,11 @@ const routes = [
     { path: '/archives', component: ArchiveList },
     { path: '/agenda-templates', component: () => import('../views/AgendaTemplate.vue') },
     { path: '/meetings/:id/dashboard', component: () => import('../views/ApproveDashboard.vue') },
-    { path: '/process-designer', component: () => import('../views/ProcessDesigner.vue') }
+    { path: '/process-designer', component: () => import('../views/ProcessDesigner.vue') },
+    { path: '/process-defs', component: () => import('../views/ProcessDefManage.vue') },
+    { path: '/members', component: () => import('../views/MemberManage.vue') },
+    { path: '/audit-logs', component: () => import('../views/AuditLog.vue') },
+    { path: '/archive-search', component: () => import('../views/ArchiveSearch.vue') }
 ]
 
 const router = createRouter({

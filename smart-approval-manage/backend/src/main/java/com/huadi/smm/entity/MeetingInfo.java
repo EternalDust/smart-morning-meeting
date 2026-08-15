@@ -23,4 +23,5 @@ public class MeetingInfo {
     private Long creatorId;
     private Date createTime;
     private Date updateTime;
+    private Long processId;
 }
