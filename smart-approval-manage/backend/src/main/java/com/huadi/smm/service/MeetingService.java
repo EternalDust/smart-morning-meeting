@@ -2,6 +2,8 @@ package com.huadi.smm.service;
 
 import com.huadi.smm.dao.MeetingInfoMapper;
 import com.huadi.smm.entity.MeetingInfo;
+import com.huadi.smm.event.MeetingEvent;
+import com.huadi.smm.producer.MeetingEventProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,9 @@ public class MeetingService {
 
     @Autowired
     private MeetingInfoMapper meetingInfoMapper;
+
+    @Autowired
+    private MeetingEventProducer eventProducer;
 
     public List<MeetingInfo> listAll() {
         return meetingInfoMapper.selectList(null);
@@ -29,6 +34,7 @@ public class MeetingService {
         meeting.setCreateTime(new Date());
         meeting.setUpdateTime(new Date());
         meetingInfoMapper.insert(meeting);
+        eventProducer.send(MeetingEvent.of("MEETING_CREATED", meeting.getId(), null, meeting.getApproveStatus()));
         return meeting;
     }
 
@@ -40,6 +46,7 @@ public class MeetingService {
         meeting.setApproveStatus(4);
         meeting.setUpdateTime(new Date());
         meetingInfoMapper.updateById(meeting);
+        eventProducer.send(MeetingEvent.of("APPROVE_STATUS_CHANGED", meetingId, 2, 4));
         return true;
     }
 }

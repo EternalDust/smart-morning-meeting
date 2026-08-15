@@ -15,7 +15,10 @@ const routes = [
     { path: '/meetings/:id/agenda', component: AgendaEdit },
     { path: '/meetings/:id/records', component: ApproveRecord },
     { path: '/meetings/:id/attendees', component: AttendeeManage },
-    { path: '/archives', component: ArchiveList }
+    { path: '/archives', component: ArchiveList },
+    { path: '/agenda-templates', component: () => import('../views/AgendaTemplate.vue') },
+    { path: '/meetings/:id/dashboard', component: () => import('../views/ApproveDashboard.vue') },
+    { path: '/process-designer', component: () => import('../views/ProcessDesigner.vue') }
 ]
 
 const router = createRouter({
