@@ -26,7 +26,10 @@
 
 **督办（巴格达）**
 - [ ] 问题来源读汇报的哪个表/接口（当前未接 `sm_meeting_summary`/`sm_meeting_interaction`）？　答：
+  走汇报交互的读接口，督办后端新增“从会议导入问题”——输入会议 ID，自动把该会议的「提问+反馈」互动消息转成问题（来源标记为自动采集），摘要作为附加问题素材；同时保留手动录入兜底。这样既满足“问题从晨会来，不是手动输入”，演示链路也能完整串起来。
+走汇报交互的 RESTful 读接口（经网关 /api/report/** 转发到 8081），不直连库：GET /api/report/meeting/interaction/list/{meetingId}?type=1（提问）、type=2（反馈）、GET /api/report/meeting/summary/export/{meetingId}（AI 会议摘要）。对应共享表 sm_meeting_interaction、sm_meeting_summary。督办侧已实现 POST /api/supervise/problem/import-meeting?meetingId=，把提问/反馈生成问题（source_type=1 自动采集），摘要作为跟进事项；sm_problem 增加 meeting_id 来源列并按「会议+标题」去重，手动录入保留兜底。
 - [ ] 4 角色 enum 如何与共享表 role（1/2）对应？　答：
+  已废弃 4 角色 enum，账号角色统一为「管理员 / 参会人」：管理员 = 工号 2 开头（对应共享表 role=1 管理层），参会人 = 工号 1 开头（对应 role=2 普通医护），判断从 JWT 的 sub（工号）取，共享表 role 作辅助。“执行责任人 / 督办专员”改为业务流程角色：执行责任人由任务分派产生（从共享表 role=2 科室人员中选，写入 sm_problem.assignee_id），不作为账号属性；进度上报按「当前负责人 + JWT 身份」校验，仅执行责任人可上报，管理员可代录。
 
 **可视化（黄祺昊）**
 - [ ] `sys_user` 与共享 `sm_gm_members` 是否统一？　答：
