@@ -10,7 +10,7 @@
 |--------|---------|------|
 | 汇报交互、审批 | 工号 `startsWith('2')` 判断管理员 | 用工号前缀，未用 role 字段 |
 | 督办 | 自定义 4 角色 enum（督办专员/执行责任人/参会人/管理员） | 与共享表 role（仅 1/2 两值）对不上 |
-| 可视化 | 独立 `sys_user` 表（roleId） | 账号体系与共享表分离 |
+| 可视化 | 已统一到共享 `sm_gm_members`（role=1 全院 / role=2 本科室） | 已随问题①修复，私有 `sys_user` 已删除 |
 
 **解决方向**：账号角色全局统一为「管理员 / 参会人」两种，从 JWT + 共享表读取；「发起人 / 主持人 / 督办专员 / 执行责任人」是业务流程角色，由会议、任务、分派决定，不作为账号属性。
 
@@ -20,7 +20,7 @@
 |------|------|------|
 | 审批 → 汇报交互 | ✅ 已接通 | 共享 `sm_meeting_info` + `sm_meeting_attendee`，审批写、汇报读 |
 | 汇报 → 督办 | ✅ 已接通 | 巴格达已实现 `POST /api/supervise/problem/import-meeting`，经汇报读接口把互动提问/反馈导为问题、摘要作跟进事项（契约已核对） |
-| 汇报/采集 → 可视化 | ❌ 未接通 | 可视化仍消费 `bi_stat_*` mock 统计表，未直接读汇报的 `sm_meeting_*` 和采集的 `data_clean_data`；黄祺昊只给了接入规划，代码未落地 |
+| 汇报/采集 → 可视化 | ✅ 已接通 | 可视化大屏已直接聚合 `sm_meeting_info/attendee/signin/speech/interaction`、`sm_problem` 与采集的 `data_clean_data`（质量分），并补 `data_clean_data` 演示种子与 Spark 离线聚合 |
 
 ## 3. 待各负责人确认的问题（请直接填写答案）
 
@@ -32,18 +32,14 @@
   已废弃 4 角色 enum，账号角色统一为「管理员 / 参会人」：管理员 = 工号 2 开头（对应共享表 role=1 管理层），参会人 = 工号 1 开头（对应 role=2 普通医护），判断从 JWT 的 sub（工号）取，共享表 role 作辅助。“执行责任人 / 督办专员”改为业务流程角色：执行责任人由任务分派产生（从共享表 role=2 科室人员中选，写入 sm_problem.assignee_id），不作为账号属性；进度上报按「当前负责人 + JWT 身份」校验，仅执行责任人可上报，管理员可代录。
 
 **可视化（黄祺昊）**
-- [ ] `sys_user` 与共享 `sm_gm_members` 是否统一？　答：
-- 当前未统一。可视化独立维护 `sys_user` 表（role_id 1/2/3 = 高层/中层/基层），登录鉴权走本子系统自己的 JWT（secret `smart-morning-meeting-2026`，24h 过期），与共享表 `sm_gm_members.role`（1 管理层 / 2 普通医护）两套并存。
-  建议整合：账号与鉴权统一到共享表 + JWT，可视化侧不再单独建账号表；"高层/中层/基层"作为展示/数据范围权限，从共享 role 映射得到：`role=1`（管理层）→ 中层及以上（可看复盘报告 / 全院数据），`role=2`（普通医护）→ 基层（只看本科室）。既满足"权限分级"要求，又与共享账号体系对齐。
-- [ ] 晨会数据读 `bi_stat_meeting`（统计）还是直接读 `sm_meeting_signin/speech/interaction`？两者关系？　答：
-- 当前读统计结果 `bi_stat_meeting`，不直接读汇报交互明细表。大屏参会率趋势查 `bi_stat_meeting`、部门分布查 `bi_stat_supervise`、实时预警查 `bi_warn_record`（由实时异常检测模块写入）。
-  两者是"明细 → 聚合"的上下游关系：`sm_meeting_signin/speech/interaction` 明细由汇报交互子系统产生，大数据分析子系统用 Spark 实时/离线任务按"日期 + 科室"聚合成 `bi_stat_*` 统计事实表，大屏只消费聚合结果，避免直接读明细带来的高耦合与查询压力。目前 `bi_stat_meeting` 由 mock 脚本填充（`mock_data_7days.sql` / `/api/dashboard/test-insert`），接真实数据时由 Spark 批处理从明细按日按科室写入即可。
-- [ ] 采集的 `data_clean_data` 如何进大屏（当前未读）？　答：
-- 当前未接入。现有链路为自造 mock 数据进 Kafka → Spark Streaming → 实时异常检测 → 写 `bi_warn_record`，未消费采集的 `data_clean_data`。
-  规划接入路径（可并行）：
-  1. 实时链路：采集侧将 `data_clean_data` 发到 Kafka（复用现有 topic 或新开），Spark Streaming 消费后做指标聚合与异常检测，结果写 `bi_stat_*` / `bi_warn_record`，大屏 WebSocket 实时刷新；
-  2. 离线链路：Spark 离线批处理按 T+1 从 `data_clean_data` 聚合写入 `bi_stat_meeting` / `bi_stat_medical`，供趋势 / 分布图表查询。
-  关联键按采集（曹丁兮）答复：`data_clean_data.department` → `sm_gm_members.dept` → `meeting_attendee` → `sm_meeting_info`；如需精确到某次会议，需在 `data_clean_data` 补 `meeting_id` 列。确认字段与关联键后，我在大数据侧补对应的 Kafka 消费者 / 批处理读取模块即可打通。
+- [x] `sys_user` 与共享 `sm_gm_members` 是否统一？　答：
+- 已统一。可视化已删除私有 `sys_user`，登录/鉴权改走共享表 `sm_gm_members`（JWT sub=工号，密钥/有效期与全平台一致）。数据范围权限从共享 role 映射：`role=1` 管理层 → 全院数据，`role=2` 普通医护 → 仅本科室（`UserContext` 统一解析）；复盘报告等"中层及以上"能力由 role=1 判定。
+- [x] 晨会数据读 `bi_stat_meeting`（统计）还是直接读 `sm_meeting_signin/speech/interaction`？两者关系？　答：
+- 已改为直接聚合汇报明细表。大屏 `/api/dashboard/trend`（参会率趋势）、`/api/dashboard/meeting-overview`（应到/实到/参会率/发言/互动/质量分）、`/api/dashboard/issues-distribution`（问题部门分布）由 `DashboardAggregateService` 直接按"日期 + 科室"聚合 `sm_meeting_info/attendee/signin/speech/interaction` 与 `sm_problem`，取"有数据的最近 N 天"出图，空数据回退演示值。
+  `bi_stat_*` 统计表保留为兼容出口（`/api/dashboard/base-level/data` 仍可读）；明细 → 聚合的上下游关系不变，Spark 离线聚合（`spark_batch_offline.py`）继续承担指标集市写入。
+- [x] 采集的 `data_clean_data` 如何进大屏（当前未读）？　答：
+- 已接入（离线链路先行）。`/meeting-overview` 的"医疗质量分"已直接聚合 `data_clean_data.quality_score`（按日期平均、科室过滤）；`smart-visual-data/sql/init.sql` 提供演示种子（2026-06 工作日，与 `sm_meeting_*` 日期对齐）；`spark_batch_offline.py` 新增 `data_clean_data → bi_stat_medical` 离线聚合（就诊人次/平均质量分/质量优良率/平均年龄，pymysql 直连、DB 不可用时兜底）。
+  关联键按采集（曹丁兮）答复：`data_clean_data.department` → `sm_gm_members.dept`。实时链路（Kafka → Spark Streaming → bi_warn_record）保持原有 mock 链路，后续采集侧接通 Kafka 后可复用。
 
 **数据采集（曹丁兮）**
 - [ ] `data_clean_data` 的字段维度？　答：
