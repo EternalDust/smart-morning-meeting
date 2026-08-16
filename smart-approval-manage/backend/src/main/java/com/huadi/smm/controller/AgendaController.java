@@ -13,6 +13,8 @@ import com.huadi.smm.service.LlmAuditService;
 import com.huadi.smm.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -71,7 +73,7 @@ public class AgendaController {
         meeting.setStartTime(req.getStartTime());
         meeting.setEndTime(req.getEndTime());
         meeting.setLocation(req.getLocation());
-        meeting.setCreatorId(1L);
+        meeting.setCreatorId(currentUserId());
         MeetingInfo saved = meetingService.save(meeting);
 
         if (req.getAttendeeIds() != null && !req.getAttendeeIds().isEmpty()) {
@@ -266,5 +268,16 @@ public class AgendaController {
         if (endDate != null) qw.le("DATE(end_time)", endDate);
         qw.orderByDesc("create_time");
         return Result.ok(meetingService.list(qw));
+    }
+
+    private Long currentUserId() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() != null && !"anonymousUser".equals(auth.getPrincipal())) {
+                return Long.valueOf(auth.getPrincipal().toString());
+            }
+        } catch (Exception ignored) {
+        }
+        return 1L;
     }
 }

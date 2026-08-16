@@ -1,15 +1,16 @@
 package com.huadi.smm.config;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 public class JwtUtil {
 
     private static final String SECRET = "smart-morning-meeting-2026";
-    private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    // 与 Shell 统一签发 secret 保持逐字节一致；Keys.hmacShaKeyFor 会因 key 不足 256bit 抛 WeakKeyException
+    private static final SecretKey KEY = new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     private static final long EXPIRE = 86400000;
 
     @SuppressWarnings("unused")

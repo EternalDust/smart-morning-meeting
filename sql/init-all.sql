@@ -196,6 +196,41 @@ CREATE TABLE IF NOT EXISTS sm_approve_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审批记录表';
 
 -- ============================================================
+-- 12.1 审批任务表 (approval-manage)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sm_approve_task (
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
+    meeting_id   BIGINT       NOT NULL                COMMENT '关联会议ID',
+    node_id      VARCHAR(50)  NOT NULL                COMMENT '节点ID',
+    node_type    VARCHAR(20)  NOT NULL                COMMENT '节点类型',
+    approver_id  BIGINT       NOT NULL                COMMENT '审批人ID',
+    status       INT          DEFAULT 0               COMMENT '0待审批 1通过 2驳回',
+    action       INT          DEFAULT NULL            COMMENT '审批动作',
+    opinion      VARCHAR(512) DEFAULT NULL            COMMENT '审批意见',
+    approve_time DATETIME     DEFAULT NULL            COMMENT '审批时间',
+    PRIMARY KEY (id),
+    KEY idx_meeting_id (meeting_id),
+    KEY idx_node_id (node_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审批任务表';
+
+-- ============================================================
+-- 12.2 审计日志表 (approval-manage)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sm_audit_log (
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    operation_type VARCHAR(50) NOT NULL                COMMENT '操作类型',
+    target_id     BIGINT       DEFAULT NULL            COMMENT '目标ID',
+    target_type   VARCHAR(50)  DEFAULT NULL            COMMENT '目标类型',
+    operator_id   BIGINT       DEFAULT NULL            COMMENT '操作人ID',
+    operator_name VARCHAR(50)  DEFAULT NULL            COMMENT '操作人姓名',
+    old_value     TEXT         DEFAULT NULL            COMMENT '旧值',
+    new_value     TEXT         DEFAULT NULL            COMMENT '新值',
+    ip_address    VARCHAR(50)  DEFAULT NULL            COMMENT 'IP地址',
+    create_time   DATETIME     DEFAULT NULL            COMMENT '创建时间',
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计日志表';
+
+-- ============================================================
 -- 13. 数据源配置表 (data-collection)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS data_source_config (
@@ -203,6 +238,7 @@ CREATE TABLE IF NOT EXISTS data_source_config (
     source_code VARCHAR(50)  NOT NULL                COMMENT '数据源编号',
     source_name VARCHAR(100) NOT NULL                COMMENT '数据源名称',
     source_type VARCHAR(20)  NOT NULL                COMMENT '数据源类型: mysql/kafka/http',
+    data_domain VARCHAR(20)  DEFAULT NULL            COMMENT '数据域: HIS/LIS/EMR/PACS/DRUG/MEETING/GENERAL',
     config_json TEXT         NOT NULL                COMMENT '连接配置(JSON)',
     status      TINYINT      NOT NULL DEFAULT 1      COMMENT '0禁用 1启用',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -432,6 +468,7 @@ CREATE TABLE IF NOT EXISTS sm_problem (
     title       VARCHAR(255) NOT NULL                COMMENT '问题标题',
     content     TEXT         DEFAULT NULL            COMMENT '问题描述',
     source_type INT          DEFAULT 2               COMMENT '来源: 1自动采集 2手动录入',
+    meeting_id  BIGINT       DEFAULT NULL            COMMENT '来源会议ID（汇报交互）',
     creator_id  BIGINT       DEFAULT NULL            COMMENT '录入人ID',
     assignee_id BIGINT       DEFAULT NULL            COMMENT '负责人ID',
     category    INT          DEFAULT NULL            COMMENT '分类: 1医疗 2运维 3管理',

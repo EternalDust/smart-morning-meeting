@@ -5,9 +5,9 @@
     </div>
     <el-table :data="list" border stripe>
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="workNo" label="工号" width="120" />
-      <el-table-column prop="realName" label="姓名" />
-      <el-table-column prop="deptId" label="科室ID" width="100" />
+      <el-table-column prop="userId" label="工号" width="120" />
+      <el-table-column prop="name" label="姓名" />
+      <el-table-column prop="dept" label="科室" width="120" />
       <el-table-column label="角色" width="100">
         <template #default="{ row }">
           <el-tag :type="row.role === 1 ? 'danger' : 'info'" size="small">

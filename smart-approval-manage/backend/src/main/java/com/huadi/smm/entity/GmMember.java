@@ -10,8 +10,8 @@ import lombok.Data;
 public class GmMember {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String workNo;
-    private String realName;
-    private Long deptId;
+    private String userId;
+    private String name;
+    private String dept;
     private Integer role;
 }

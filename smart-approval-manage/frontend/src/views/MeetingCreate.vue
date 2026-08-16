@@ -36,8 +36,8 @@
           <el-option
               v-for="m in memberList"
               :key="m.id"
-              :label="m.realName + ' (' + m.workNo + ')'"
-              :value="m.id"
+              :label="m.name + ' (' + m.userId + ')'"
+              :value="m.userId"
           />
         </el-select>
       </el-form-item>
