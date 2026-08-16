@@ -32,13 +32,12 @@ mybatis-plus:
     db-config:
       id-type: auto
 
-# 大模型复盘报告配置 (Qwen / DeepSeek 等 OpenAI 兼容接口)
-# base-url 留空时后端降级为模板模拟生成，保证演示链路可用
+# 大模型复盘报告配置 (DeepSeek 等 OpenAI 兼容接口)
 ai:
   llm:
-    base-url: ${AI_LLM_BASE_URL:}
-    model: ${AI_LLM_MODEL:qwen-plus}
-    api-key: ${AI_LLM_API_KEY:}
+    base-url: ${AI_LLM_BASE_URL:https://api.deepseek.com}
+    model: ${AI_LLM_MODEL:deepseek-v4-flash}
+    api-key: ${AI_LLM_API_KEY:sk-2b28173e62994a95acf0000de7025620}
     connect-timeout-seconds: 10
     read-timeout-seconds: 60
     temperature: 0.7
