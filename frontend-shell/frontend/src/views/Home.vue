@@ -6,35 +6,47 @@
         <span>数字医疗智慧晨会</span>
       </div>
       <el-menu
-        :default-active="active"
+        :default-active="activeKey"
         background-color="#001529"
         text-color="#cfd8e3"
         active-text-color="#fff"
-        @select="select"
+        @select="onSelect"
       >
         <el-menu-item-group title="晨会线">
-          <el-menu-item v-if="isAdmin" index="approval">
-            <el-icon><Document /></el-icon>
-            <span>会议审批与议程</span>
-          </el-menu-item>
-          <el-menu-item index="report">
+          <el-sub-menu v-if="isAdmin" index="approval">
+            <template #title>
+              <el-icon><Document /></el-icon>
+              <span>会议审批与议程</span>
+            </template>
+            <el-menu-item v-for="p in MENU.approval.pages" :key="p.route" :index="'approval' + p.route">{{ p.title }}</el-menu-item>
+          </el-sub-menu>
+          <el-menu-item index="report/meetingroom">
             <el-icon><ChatDotRound /></el-icon>
             <span>签到汇报与互动</span>
           </el-menu-item>
-          <el-menu-item v-if="isAdmin" index="supervise">
-            <el-icon><Warning /></el-icon>
-            <span>问题督办与闭环</span>
-          </el-menu-item>
+          <el-sub-menu v-if="isAdmin" index="supervise">
+            <template #title>
+              <el-icon><Warning /></el-icon>
+              <span>问题督办与闭环</span>
+            </template>
+            <el-menu-item v-for="p in MENU.supervise.pages" :key="p.route" :index="'supervise' + p.route">{{ p.title }}</el-menu-item>
+          </el-sub-menu>
         </el-menu-item-group>
         <el-menu-item-group v-if="isAdmin" title="数据线">
-          <el-menu-item v-if="isAdmin" index="collection">
-            <el-icon><DataBoard /></el-icon>
-            <span>多源数据采集治理</span>
-          </el-menu-item>
-          <el-menu-item v-if="isAdmin" index="visual">
-            <el-icon><Monitor /></el-icon>
-            <span>可视化与决策</span>
-          </el-menu-item>
+          <el-sub-menu index="collection">
+            <template #title>
+              <el-icon><DataBoard /></el-icon>
+              <span>多源数据采集治理</span>
+            </template>
+            <el-menu-item v-for="p in MENU.collection.pages" :key="p.route" :index="'collection' + p.route">{{ p.title }}</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="visual">
+            <template #title>
+              <el-icon><Monitor /></el-icon>
+              <span>可视化与决策</span>
+            </template>
+            <el-menu-item v-for="p in MENU.visual.pages" :key="p.route" :index="'visual' + p.route">{{ p.title }}</el-menu-item>
+          </el-sub-menu>
         </el-menu-item-group>
       </el-menu>
     </el-aside>
@@ -63,27 +75,80 @@ import { Monitor, ChatDotRound, Document, DataBoard, Warning, FirstAidKit } from
 
 const router = useRouter()
 
-const MODULES = {
-  approval: { title: '会议审批与议程', url: 'http://localhost:5175' },
-  report: { title: '签到汇报与互动', url: 'http://localhost:5174' },
-  supervise: { title: '问题督办与闭环', url: 'http://localhost:5177' },
-  collection: { title: '多源数据采集治理', url: 'http://localhost:5176' },
-  visual: { title: '可视化与决策', url: 'http://localhost:5173' }
+const MENU = {
+  approval: {
+    title: '会议审批与议程',
+    url: 'http://localhost:5175',
+    icon: Document,
+    pages: [
+      { title: '会议列表', route: '/meetings' },
+      { title: '创建会议', route: '/meetings/create' },
+      { title: '归档中心', route: '/archives' },
+      { title: '成员管理', route: '/members' }
+    ]
+  },
+  report: {
+    title: '签到汇报与互动',
+    url: 'http://localhost:5174',
+    icon: ChatDotRound,
+    pages: [{ title: '晨会主屏', route: '/meetingroom' }]
+  },
+  supervise: {
+    title: '问题督办与闭环',
+    url: 'http://localhost:5177',
+    icon: Warning,
+    pages: [
+      { title: '首页', route: '/dashboard' },
+      { title: '问题列表', route: '/problems' },
+      { title: '进度跟踪', route: '/progress' },
+      { title: '数据统计', route: '/statistics' }
+    ]
+  },
+  collection: {
+    title: '多源数据采集治理',
+    url: 'http://localhost:5176',
+    icon: DataBoard,
+    pages: [
+      { title: '工作台首页', route: '/dashboard' },
+      { title: '数据源管理', route: '/datasource' },
+      { title: '质量监控', route: '/quality' },
+      { title: '数据溯源', route: '/lineage' },
+      { title: '标签管理', route: '/label' }
+    ]
+  },
+  visual: {
+    title: '可视化与决策',
+    url: 'http://localhost:5173',
+    icon: Monitor,
+    pages: [
+      { title: '参会率', route: '/attendance' },
+      { title: '问题解决', route: '/problem-solving' },
+      { title: '风险预测', route: '/risk-prediction' },
+      { title: '复盘报告', route: '/review-report' }
+    ]
+  }
 }
 
-const active = ref('report')
+const activeMod = ref('report')
+const activeRoute = ref('/meetingroom')
 const userName = ref(localStorage.getItem('userName') || '用户')
 const token = localStorage.getItem('token') || ''
 const userId = getUserId()
 const isAdmin = computed(() => String(userId || '').startsWith('2'))
 
-const activeTitle = computed(() => MODULES[active.value].title)
+const activeKey = computed(() => activeMod.value + activeRoute.value)
+const activeTitle = computed(() => MENU[activeMod.value].title)
 const currentSrc = computed(() => {
-  const q = '?token=' + encodeURIComponent(token) + '&userName=' + encodeURIComponent(userName.value)
-  return MODULES[active.value].url + q
+  const q = '?token=' + encodeURIComponent(token) +
+    '&userName=' + encodeURIComponent(userName.value) + '&embed=1'
+  return MENU[activeMod.value].url + activeRoute.value + q
 })
 
-const select = (key) => { active.value = key }
+const onSelect = (key) => {
+  const idx = key.indexOf('/')
+  activeMod.value = key.slice(0, idx)
+  activeRoute.value = key.slice(idx)
+}
 
 const logout = () => {
   localStorage.clear()

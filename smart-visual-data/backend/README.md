@@ -113,7 +113,7 @@ smart-visual-data/
 ### WebSocket
 | 端点 | 说明 |
 |------|------|
-| `ws://localhost:8080/ws/morning-meeting` | 实时数据推送 |
+| `ws://localhost:8086/ws/morning-meeting` | 实时数据推送 |
 
 ## 用户角色
 
@@ -163,7 +163,7 @@ source mock_data_7days.sql;   -- 插入7天模拟数据
 cd backend
 # 确保 application.yml 里的数据库/Redis 连接信息正确
 ./mvnw spring-boot:run
-# 后端运行在 http://localhost:8080
+# 后端运行在 http://localhost:8086
 ```
 
 ### 3. 启动前端

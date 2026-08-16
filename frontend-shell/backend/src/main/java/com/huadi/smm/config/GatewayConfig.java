@@ -33,7 +33,7 @@ public class GatewayConfig {
             "report", "http://127.0.0.1:8081",
             "approval", "http://127.0.0.1:8082",
             "supervise", "http://127.0.0.1:8084",
-            "visual", "http://127.0.0.1:8080",
+            "visual", "http://127.0.0.1:8086",
             "collection", "http://127.0.0.1:8083"
         );
     }

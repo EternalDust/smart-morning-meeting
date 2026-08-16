@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 frontend-shell (:5000 / :8085)  ← 统一登录 + API 网关
 smart-report-interaction (:5174 / :8081)   ← 汪宇涵
-smart-visual-data (:5173 / :8080)
+smart-visual-data (:5173 / :8086)
 smart-approval-manage (:5175 / :8082)
 smart-data-collection (:5176 / :8083)
 smart-meeting-supervise (:5177 / :8084)
@@ -28,7 +28,7 @@ Shell 后端 `GatewayConfig` 路由映射：
 | `/api/report/**` | `http://127.0.0.1:8081` |
 | `/api/approval/**` | `http://127.0.0.1:8082` |
 | `/api/supervise/**` | `http://127.0.0.1:8084` |
-| `/api/visual/**` | `http://127.0.0.1:8080` |
+| `/api/visual/**` | `http://127.0.0.1:8086` |
 | `/api/collection/**` | `http://127.0.0.1:8083` |
 
 关键踩坑：路径重写时不能丢失 `/api` 前缀（否则 Security `permitAll` 不放行返回 403）；目标地址用 `127.0.0.1` 不用 `localhost`（IPv6 问题）；RestTemplate 必须设 no-op `ResponseErrorHandler`。
@@ -39,7 +39,7 @@ Shell 后端 `GatewayConfig` 路由映射：
 
 ### 当前状态
 
-鸿蒙 App 已创建，设计文档在 `smart-report-interaction/docs/superpowers/`。后端服务 8080-8085 可正常启动。前端通过 Shell :5000 统一入口，URL 传 token 集成。演示模式 JWT 拦截器已放通。
+鸿蒙 App 已创建，设计文档在 `smart-report-interaction/docs/superpowers/`。后端服务 8081-8086 可正常启动（可视化原 8080 因本机 iphlpsvc 占用已迁 8086）。前端通过 Shell :5000 统一入口，URL 传 token 集成。演示模式 JWT 拦截器已放通。
 
 ## 常用命令
 

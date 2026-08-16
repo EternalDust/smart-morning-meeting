@@ -17,7 +17,7 @@ export function useRealtime() {
     if (wsInitialized) return
     wsInitialized = true
     try {
-      ws = new WebSocket('ws://localhost:8080/ws/morning-meeting')
+      ws = new WebSocket('ws://localhost:8086/ws/morning-meeting')
       ws.onopen = () => console.log('已连接到 WebSocket')
       ws.onmessage = (event) => {
         try {

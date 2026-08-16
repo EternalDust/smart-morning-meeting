@@ -1,6 +1,6 @@
 <template>
   <div class="app-wrapper">
-    <div class="app-header">
+    <div v-if="!isEmbed" class="app-header">
       <div class="header-inner">
         <div class="header-title">
           <el-icon :size="24" color="#fff"><Calendar /></el-icon>
@@ -12,7 +12,7 @@
     <div class="app-main">
       <router-view />
     </div>
-    <div class="app-footer">
+    <div v-if="!isEmbed" class="app-footer">
       四川华迪信息技术有限公司 · 企业实习项目
     </div>
   </div>
@@ -20,6 +20,8 @@
 
 <script setup>
 import { Calendar } from '@element-plus/icons-vue'
+
+const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 </script>
 
 <style>

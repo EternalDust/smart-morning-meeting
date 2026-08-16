@@ -1,7 +1,7 @@
 <template>
   <div class="app-layout">
     <el-container>
-      <el-aside width="220px" class="sidebar">
+      <el-aside v-if="!isEmbed" width="220px" class="sidebar">
         <div class="logo">
           <el-icon :size="24"><Monitor /></el-icon>
           <span>数据治理平台</span>
@@ -37,7 +37,7 @@
       </el-aside>
 
       <el-container>
-        <el-header class="topbar">
+        <el-header v-if="!isEmbed" class="topbar">
           <div class="breadcrumb">
             <el-breadcrumb>
               <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
@@ -71,6 +71,7 @@ const userStore = useUserStore()
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '')
 const isAdmin = computed(() => userStore.isAdmin)
+const isEmbed = new URLSearchParams(window.location.search).get('embed') === '1'
 
 const roleLabel = computed(() => {
   const map = { admin: '管理员', manager: '管理者', operator: '操作员' }
