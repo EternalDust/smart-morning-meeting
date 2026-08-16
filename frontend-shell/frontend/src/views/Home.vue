@@ -1,66 +1,138 @@
 <template>
-  <div class="home">
-    <div class="topbar">
-      <span class="greeting">{{ userName }}，欢迎</span>
-      <span class="platform">数字医疗智慧晨会协同与决策支撑平台</span>
-      <el-button link @click="logout" style="color:#fff">退出</el-button>
-    </div>
-    <div class="cards">
-      <div class="card" v-for="sys in systems" :key="sys.name" @click="open(sys.url)">
-        <div class="card-icon" :style="{background:sys.color}">
-          <el-icon :size="28"><component :is="sys.icon" /></el-icon>
-        </div>
-        <div class="card-title">{{ sys.name }}</div>
-        <div class="card-desc">{{ sys.desc }}</div>
+  <el-container class="shell">
+    <el-aside width="220px" class="sidebar">
+      <div class="logo">
+        <el-icon :size="22" color="#fff"><FirstAidKit /></el-icon>
+        <span>数字医疗智慧晨会</span>
       </div>
-    </div>
-  </div>
+      <el-menu
+        :default-active="active"
+        background-color="#001529"
+        text-color="#cfd8e3"
+        active-text-color="#fff"
+        @select="select"
+      >
+        <el-menu-item-group title="晨会线">
+          <el-menu-item v-if="isAdmin" index="approval">
+            <el-icon><Document /></el-icon>
+            <span>会议审批与议程</span>
+          </el-menu-item>
+          <el-menu-item index="report">
+            <el-icon><ChatDotRound /></el-icon>
+            <span>签到汇报与互动</span>
+          </el-menu-item>
+          <el-menu-item v-if="isAdmin" index="supervise">
+            <el-icon><Warning /></el-icon>
+            <span>问题督办与闭环</span>
+          </el-menu-item>
+        </el-menu-item-group>
+        <el-menu-item-group v-if="isAdmin" title="数据线">
+          <el-menu-item v-if="isAdmin" index="collection">
+            <el-icon><DataBoard /></el-icon>
+            <span>多源数据采集治理</span>
+          </el-menu-item>
+          <el-menu-item v-if="isAdmin" index="visual">
+            <el-icon><Monitor /></el-icon>
+            <span>可视化与决策</span>
+          </el-menu-item>
+        </el-menu-item-group>
+      </el-menu>
+    </el-aside>
+
+    <el-container class="body">
+      <el-header class="topbar">
+        <span class="mod-title">{{ activeTitle }}</span>
+        <span class="spacer"></span>
+        <span class="user-name">{{ userName }}</span>
+        <el-tag :type="isAdmin ? 'danger' : 'success'" size="small" effect="dark">
+          {{ isAdmin ? '管理员' : '参会人' }}
+        </el-tag>
+        <el-button link class="logout" @click="logout">退出</el-button>
+      </el-header>
+      <el-main class="main">
+        <iframe :src="currentSrc" class="frame" />
+      </el-main>
+    </el-container>
+  </el-container>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Monitor, ChatDotRound, Document, DataBoard, Warning } from '@element-plus/icons-vue'
+import { Monitor, ChatDotRound, Document, DataBoard, Warning, FirstAidKit } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const userName = ref('')
 
-const systems = [
-  { name:'大数据可视化大屏', desc:'晨会数据实时监控与分析决策', url:'http://localhost:5173', color:'#2563EB', icon: Monitor },
-  { name:'晨会汇报与实时交互', desc:'签到 · 汇报 · 提问 · 投票', url:'http://localhost:5174', color:'#059669', icon: ChatDotRound },
-  { name:'晨会审批与议程管理', desc:'发起晨会 · 拟定议程 · 材料审核 · 流程审批', url:'http://localhost:5175', color:'#7C3AED', icon: Document },
-  { name:'多源数据采集与治理', desc:'数据接入 · 清洗 · 标签化 · 溯源', url:'http://localhost:5176', color:'#D97706', icon: DataBoard },
-  { name:'问题督办与闭环管理', desc:'问题登记 · 分派 · 进度跟踪 · 结案', url:'http://localhost:5177', color:'#DC2626', icon: Warning },
-]
-
-const open = (url) => {
-  const token = localStorage.getItem('token') || ''
-  const userName = localStorage.getItem('userName') || ''
-  const query = '?token=' + encodeURIComponent(token) + '&userName=' + encodeURIComponent(userName)
-  window.open(url + query, '_blank')
+const MODULES = {
+  approval: { title: '会议审批与议程', url: 'http://localhost:5175' },
+  report: { title: '签到汇报与互动', url: 'http://localhost:5174' },
+  supervise: { title: '问题督办与闭环', url: 'http://localhost:5177' },
+  collection: { title: '多源数据采集治理', url: 'http://localhost:5176' },
+  visual: { title: '可视化与决策', url: 'http://localhost:5173' }
 }
+
+const active = ref('report')
+const userName = ref(localStorage.getItem('userName') || '用户')
+const token = localStorage.getItem('token') || ''
+const userId = getUserId()
+const isAdmin = computed(() => String(userId || '').startsWith('2'))
+
+const activeTitle = computed(() => MODULES[active.value].title)
+const currentSrc = computed(() => {
+  const q = '?token=' + encodeURIComponent(token) + '&userName=' + encodeURIComponent(userName.value)
+  return MODULES[active.value].url + q
+})
+
+const select = (key) => { active.value = key }
 
 const logout = () => {
   localStorage.clear()
   router.push('/login')
 }
 
+function getUserId() {
+  const uid = localStorage.getItem('userId')
+  if (uid) return uid
+  const t = localStorage.getItem('token')
+  if (t) {
+    try {
+      const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+      return p.sub || p.userId || ''
+    } catch (e) {}
+  }
+  return ''
+}
+
 onMounted(() => {
-  userName.value = localStorage.getItem('userName') || ''
   if (!localStorage.getItem('token')) router.push('/login')
 })
 </script>
 
 <style scoped>
-.home { min-height:100vh; background:#F1F5F9 }
-.topbar { display:flex; align-items:center; padding:0 24px; height:56px; background:#1E293B; color:#fff }
-.greeting { font-size:14px }
-.platform { flex:1; text-align:center; font-size:15px; font-weight:500 }
-.cards { display:flex; justify-content:center; gap:20px; padding:60px 24px; flex-wrap:wrap }
-.card { width:200px; padding:28px 20px; background:#fff; border-radius:10px; text-align:center; cursor:pointer; transition: all .2s; box-shadow:0 1px 3px rgba(0,0,0,.06) }
-.card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.1) }
-.card-icon { width:56px; height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px }
-.card-icon :deep(.el-icon) { color:#fff }
-.card-title { font-size:14px; font-weight:600; margin-bottom:6px; color:#1E293B }
-.card-desc { font-size:12px; color:#64748B; line-height:1.5 }
+.shell { height: 100vh }
+.sidebar { background: #001529 }
+.logo {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.body { flex-direction: column }
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+.mod-title { font-size: 15px; font-weight: 600; color: #1e293b }
+.spacer { flex: 1 }
+.user-name { font-size: 13px; color: #475569 }
+.logout { color: #dc2626 }
+.main { padding: 0; overflow: hidden }
+.frame { width: 100%; height: 100%; border: none; display: block }
 </style>

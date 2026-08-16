@@ -31,6 +31,7 @@ const doLogin = async () => {
     if (res.data.success) {
       localStorage.setItem('token', res.data.data.token)
       localStorage.setItem('userName', res.data.data.userName)
+      localStorage.setItem('userId', res.data.data.userId)
       router.push('/home')
     } else {
       ElMessage.error(res.data.msg)

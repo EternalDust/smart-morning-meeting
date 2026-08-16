@@ -19,8 +19,8 @@
 | 链路 | 状态 | 说明 |
 |------|------|------|
 | 审批 → 汇报交互 | ✅ 已接通 | 共享 `sm_meeting_info` + `sm_meeting_attendee`，审批写、汇报读 |
-| 汇报 → 督办 | ❌ 未接通 | 督办未读 `sm_meeting_summary` / `sm_meeting_interaction`，问题抽取未实现 |
-| 汇报/采集 → 可视化 | ❌ 未接通 | 可视化用 `bi_stat_*` 统计表，未直接读汇报的 `sm_meeting_*` 和采集的 `data_clean_data` |
+| 汇报 → 督办 | ✅ 已接通 | 巴格达已实现 `POST /api/supervise/problem/import-meeting`，经汇报读接口把互动提问/反馈导为问题、摘要作跟进事项（契约已核对） |
+| 汇报/采集 → 可视化 | ❌ 未接通 | 可视化仍消费 `bi_stat_*` mock 统计表，未直接读汇报的 `sm_meeting_*` 和采集的 `data_clean_data`；黄祺昊只给了接入规划，代码未落地 |
 
 ## 3. 待各负责人确认的问题（请直接填写答案）
 
