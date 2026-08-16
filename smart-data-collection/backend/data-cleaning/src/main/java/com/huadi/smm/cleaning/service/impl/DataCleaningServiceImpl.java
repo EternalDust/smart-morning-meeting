@@ -162,4 +162,67 @@ public class DataCleaningServiceImpl implements DataCleaningService {
         m.put("doctorId", clean.getDoctorId());
         return m;
     }
+
+    @Override
+    public Map<String, Object> getCleanDataList(int page, int size, String department) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        List<CleanData> all = cleanDataDao.selectList(
+                department == null || department.trim().isEmpty() ? null
+                        : new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<CleanData>()
+                                .eq(CleanData::getDepartment, department.trim()));
+        if (all == null) {
+            all = new java.util.ArrayList<>();
+        }
+        int total = all.size();
+        int from = Math.max(0, (page - 1) * size);
+        int to = Math.min(total, from + size);
+        List<CleanData> pageList = from >= total ? new java.util.ArrayList<>() : all.subList(from, to);
+
+        List<Map<String, Object>> rows = new java.util.ArrayList<>();
+        for (CleanData c : pageList) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", c.getId());
+            row.put("patientId", c.getPatientId());
+            row.put("visitTime", c.getVisitTime() == null ? null : c.getVisitTime().toString());
+            row.put("age", c.getAge());
+            row.put("gender", c.getGender());
+            row.put("diagnosis", c.getDiagnosis());
+            row.put("department", c.getDepartment());
+            row.put("doctorId", c.getDoctorId());
+            row.put("qualityScore", c.getQualityScore());
+            row.put("createTime", c.getCreateTime() == null ? null : c.getCreateTime().toString());
+            rows.add(row);
+        }
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        result.put("list", rows);
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> getCleanDataByDepartment() {
+        List<CleanData> all = cleanDataDao.selectList(null);
+        Map<String, Integer> countMap = new LinkedHashMap<>();
+        Map<String, BigDecimal> scoreSum = new LinkedHashMap<>();
+        if (all != null) {
+            for (CleanData c : all) {
+                String dept = c.getDepartment() == null || c.getDepartment().trim().isEmpty()
+                        ? "未知" : c.getDepartment().trim();
+                countMap.put(dept, countMap.getOrDefault(dept, 0) + 1);
+                scoreSum.put(dept, scoreSum.getOrDefault(dept, BigDecimal.ZERO)
+                        .add(c.getQualityScore() == null ? BigDecimal.ZERO : c.getQualityScore()));
+            }
+        }
+        List<Map<String, Object>> list = new java.util.ArrayList<>();
+        for (Map.Entry<String, Integer> e : countMap.entrySet()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("department", e.getKey());
+            item.put("count", e.getValue());
+            item.put("avgQualityScore", scoreSum.get(e.getKey())
+                    .divide(BigDecimal.valueOf(e.getValue()), 2, java.math.RoundingMode.HALF_UP));
+            list.add(item);
+        }
+        return list;
+    }
 }

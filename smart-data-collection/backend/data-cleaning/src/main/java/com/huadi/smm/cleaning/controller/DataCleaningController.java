@@ -27,4 +27,22 @@ public class DataCleaningController {
     public R getQualityTrend(@RequestParam(defaultValue = "7") int days) {
         return R.ok(dataCleaningService.getQualityTrend(days));
     }
+
+    /**
+     * 标准数据表明细（供可视化/大数据下游读取；GET 类接口对任意已认证用户开放）
+     */
+    @GetMapping("/data/list")
+    public R getCleanDataList(@RequestParam(defaultValue = "1") int page,
+                              @RequestParam(defaultValue = "20") int size,
+                              @RequestParam(required = false) String department) {
+        return R.ok(dataCleaningService.getCleanDataList(page, size, department));
+    }
+
+    /**
+     * 按科室聚合统计（科室维度即与晨会数据的关联键：department → sm_gm_members.dept）
+     */
+    @GetMapping("/data/by-department")
+    public R getCleanDataByDepartment() {
+        return R.ok(dataCleaningService.getCleanDataByDepartment());
+    }
 }

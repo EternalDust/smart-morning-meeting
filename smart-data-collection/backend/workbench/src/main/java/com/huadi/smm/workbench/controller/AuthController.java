@@ -64,10 +64,16 @@ public class AuthController {
             return R.error(401, "Token无效或已过期");
         }
         Claims claims = JwtUtil.parseToken(token);
+        // 统一角色模型：sub 取工号，工号 2 开头=管理员；兼容旧 token 的 role claim
+        String userId = claims.getSubject() != null ? claims.getSubject()
+                : (claims.get("username") == null ? "" : claims.get("username").toString());
+        String role = claims.get("role") == null ? "" : claims.get("role").toString();
+        boolean admin = userId.startsWith("2")
+                || "admin".equals(role) || "manager".equals(role);
         Map<String, Object> info = new HashMap<>();
-        info.put("userId", claims.get("userId"));
-        info.put("username", claims.get("username"));
-        info.put("role", claims.get("role"));
+        info.put("userId", userId);
+        info.put("username", userId);
+        info.put("role", admin ? "admin" : "operator");
         return R.ok(info);
     }
 

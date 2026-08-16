@@ -36,10 +36,16 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
 
         // 解析角色，实现接口级权限隔离
+        // 统一角色模型（README 约定）：工号 2 开头=管理员、1 开头=参会人，从 JWT 的 sub 读。
+        // 兼容历史 token 的 role claim（admin/manager）。
         Claims claims = JwtUtil.parseToken(token);
         request.setAttribute("claims", claims);
-        String role = claims.get("role") == null ? "operator" : claims.get("role").toString();
-        boolean admin = "admin".equals(role) || "manager".equals(role);
+        String userId = claims.getSubject() == null
+                ? (claims.get("username") == null ? "" : claims.get("username").toString())
+                : claims.getSubject();
+        String role = claims.get("role") == null ? "" : claims.get("role").toString();
+        boolean admin = userId.startsWith("2")
+                || "admin".equals(role) || "manager".equals(role);
 
         if (isAdminOnly(request) && !admin) {
             return reject(response, 403, "无权限执行该操作，仅管理员可访问");

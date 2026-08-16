@@ -20,6 +20,8 @@ public class JwtUtil {
         claims.put("role", role);
         return Jwts.builder()
                 .setClaims(claims)
+                // sub 统一为工号：与 Shell/其他子系统一致，角色按工号前缀判断（2开头=管理员）
+                .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRE))
                 .signWith(SignatureAlgorithm.HS256, SECRET)
