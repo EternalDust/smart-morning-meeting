@@ -431,6 +431,22 @@ CREATE TABLE IF NOT EXISTS bi_chart_config (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='可视化大屏配置表';
 
+-- ------------------------------------------------------------
+-- 24.1 大模型复盘报告表 (visual-data, AI 复盘报告/决策建议)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bi_review_report (
+    id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '报告ID',
+    title       VARCHAR(255) DEFAULT NULL            COMMENT '报告标题',
+    content     LONGTEXT     DEFAULT NULL            COMMENT '报告内容(Markdown)',
+    report_type VARCHAR(20)  DEFAULT 'REVIEW'        COMMENT '报告类型: REVIEW复盘/ADVICE决策建议',
+    start_date  VARCHAR(20)  DEFAULT NULL            COMMENT '统计开始日期',
+    end_date    VARCHAR(20)  DEFAULT NULL            COMMENT '统计结束日期',
+    status      INT          DEFAULT 2               COMMENT '生成状态: 1真实生成 2模拟生成 0失败',
+    create_by   VARCHAR(64)  DEFAULT NULL            COMMENT '生成人',
+    create_time VARCHAR(20)  DEFAULT NULL            COMMENT '生成时间',
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='大模型晨会复盘报告表';
+
 -- ============================================================
 -- 25. 操作日志表 (visual-data)
 -- ============================================================
