@@ -23,6 +23,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll() // 登录接口放行
                 .requestMatchers("/api/dashboard/trend").permitAll() // 图表接口放行
+                .requestMatchers("/api/dashboard/meeting-overview").permitAll() // 会议数据概览接口放行
                 .requestMatchers("/api/dashboard/issues-distribution").permitAll() // 图表接口放行
                 .requestMatchers("/api/dashboard/test-insert").permitAll() // 临时放行测试接口
                 .requestMatchers("/api/dashboard/base-level/**").permitAll() // 临时放行基础数据接口以便测试

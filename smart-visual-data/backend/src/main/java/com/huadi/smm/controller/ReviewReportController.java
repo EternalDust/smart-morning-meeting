@@ -2,11 +2,10 @@ package com.huadi.smm.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.huadi.smm.common.ApiResponse;
+import com.huadi.smm.common.UserContext;
 import com.huadi.smm.entity.BiReviewReport;
 import com.huadi.smm.service.BiReviewReportService;
 import com.huadi.smm.service.ReviewReportService;
-import com.huadi.smm.utils.JwtUtils;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +27,13 @@ public class ReviewReportController {
 
     private final ReviewReportService reviewReportService;
     private final BiReviewReportService biReviewReportService;
+    private final UserContext userContext;
 
     /** 生成复盘报告 / 管理决策建议 */
     @PostMapping("/review-report")
     public ApiResponse<BiReviewReport> generate(@RequestBody GenerateReportRequest req, HttpServletRequest request) {
         if (!canAccess(request)) {
-            return ApiResponse.error(403, "无权限：复盘报告仅中层及以上角色可生成");
+            return ApiResponse.error(403, "无权限：复盘报告仅管理层可生成");
         }
         BiReviewReport report = reviewReportService.generateReport(
                 req.getReportType(), req.getStartDate(), req.getEndDate(), operatorName(request));
@@ -77,32 +77,15 @@ public class ReviewReportController {
     }
 
     /**
-     * 权限校验：演示模式无 Token 放通；有 Token 时要求 role_id 为 1（高层）或 2（中层）
+     * 权限校验：账号体系统一后，复盘报告仅管理层（sm_gm_members.role=1）可查看与生成。
+     * 演示模式（未携带 Token）视为管理层放通，便于大屏独立联调。
      */
     private boolean canAccess(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
-        if (token == null || !token.startsWith("Bearer ")) {
-            return true; // 演示模式放通
-        }
-        try {
-            Claims claims = JwtUtils.parseToken(token.substring(7));
-            Integer roleId = claims.get("roleId", Integer.class);
-            return roleId != null && roleId <= 2;
-        } catch (Exception e) {
-            return false;
-        }
+        return userContext.isAdmin(request);
     }
 
     private String operatorName(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            try {
-                Claims claims = JwtUtils.parseToken(token.substring(7));
-                return claims.get("username", String.class);
-            } catch (Exception ignored) {
-            }
-        }
-        return "admin";
+        return userContext.currentName(request);
     }
 }
 

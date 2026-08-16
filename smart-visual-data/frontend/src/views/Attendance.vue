@@ -22,6 +22,36 @@
         </el-card>
       </el-col>
     </el-row>
+    <!-- 会议数据概览（真实业务数据：签到/发言/互动/医疗质量分） -->
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card shadow="hover">
+          <template #header>
+            <span style="font-weight:bold">会议数据概览（最近有数据会议日）</span>
+          </template>
+          <el-table :data="overviewList" stripe border style="width:100%">
+            <el-table-column prop="date" label="日期" width="120" align="center" />
+            <el-table-column label="应到" prop="shouldNum" width="90" align="center" />
+            <el-table-column label="实到" prop="realNum" width="90" align="center" />
+            <el-table-column label="参会率" align="center" width="110">
+              <template #default="{ row }">
+                <el-tag :type="Number(row.attendRate) < 85 ? 'danger' : 'success'">{{ row.attendRate }}%</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="speechCount" label="发言数" width="90" align="center" />
+            <el-table-column prop="interactionCount" label="互动数" width="90" align="center" />
+            <el-table-column label="医疗质量分" align="center">
+              <template #default="{ row }">
+                {{ Number(row.qualityScore).toFixed(1) }}
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-if="overviewList.length === 0" style="text-align:center; color:#909399; padding:12px">
+            暂无真实会议数据，请确认已加载 sm_meeting_* 演示数据
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -35,6 +65,18 @@ const { realtimeData, initWebSocket, closeWebSocket } = useRealtime()
 
 const trendChartRef = ref(null)
 let trendChart = null
+const overviewList = ref([])
+
+const fetchOverview = async () => {
+  try {
+    const res = await axios.get('/api/dashboard/meeting-overview')
+    if (res.data.code === 200) {
+      overviewList.value = res.data.data || []
+    }
+  } catch (e) {
+    console.error('获取会议数据概览失败', e)
+  }
+}
 
 const initChart = () => {
   trendChart = echarts.init(trendChartRef.value)
@@ -75,6 +117,7 @@ const handleResize = () => { if (trendChart) trendChart.resize() }
 onMounted(() => {
   initWebSocket()
   initChart()
+  fetchOverview()
   window.addEventListener('resize', handleResize)
 })
 
