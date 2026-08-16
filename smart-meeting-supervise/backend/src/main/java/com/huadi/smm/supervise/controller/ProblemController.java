@@ -83,8 +83,24 @@ public class ProblemController {
      * POST /api/supervise/problem/import-meeting?meetingId=1
      */
     @PostMapping("/import-meeting")
-    public Result<Map<String, Object>> importFromMeeting(@RequestParam Long meetingId) {
-        return Result.ok(meetingImportService.importFromMeeting(meetingId));
+    public Result<Map<String, Object>> importFromMeeting(
+            @RequestParam Long meetingId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long creatorId = resolveCreatorId(authorization);
+        return Result.ok(meetingImportService.importFromMeeting(meetingId, creatorId));
+    }
+
+    private Long resolveCreatorId(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return null;
+        }
+        try {
+            String account = jwtUtils.getClaimsFromToken(authorization.substring(7)).getSubject();
+            User user = userMapper.findByUserId(account);
+            return user == null ? null : user.getId();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

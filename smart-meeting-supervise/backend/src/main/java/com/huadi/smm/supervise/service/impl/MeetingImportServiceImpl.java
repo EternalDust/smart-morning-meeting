@@ -41,7 +41,7 @@ public class MeetingImportServiceImpl implements MeetingImportService {
     }
 
     @Override
-    public Map<String, Object> importFromMeeting(Long meetingId) {
+    public Map<String, Object> importFromMeeting(Long meetingId, Long creatorId) {
         if (meetingId == null) {
             throw new IllegalArgumentException("会议ID不能为空");
         }
@@ -79,6 +79,7 @@ public class MeetingImportServiceImpl implements MeetingImportService {
                 p.setContent("【晨会" + typeName + "】" + speaker + "：" + content);
                 p.setSourceType(1);
                 p.setStatus(0);
+                p.setCreatorId(creatorId);
                 problemMapper.insert(p);
                 imported++;
                 messages.add(title);
@@ -98,6 +99,7 @@ public class MeetingImportServiceImpl implements MeetingImportService {
                     p.setContent(summary);
                     p.setSourceType(1);
                     p.setStatus(0);
+                    p.setCreatorId(creatorId);
                     problemMapper.insert(p);
                     imported++;
                 } else {

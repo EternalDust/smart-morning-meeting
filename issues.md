@@ -49,7 +49,7 @@
   id / create_time（元信息）。
 - [ ] 与晨会数据的关联键（会议 ID / 科室）？　答：
 - 当前关联键是 `department`（科室）。`data_clean_data.department` 对应 `sm_gm_members.dept`（科室），
-  晨会按科室参会/汇报，由此间接关联到会议：`department = sm_gm_members.dept → meeting_attendee（参会人员）→ sm_meeting_info（会议）`。
+  晨会按科室参会/汇报，由此间接关联到会议：`department = sm_gm_members.dept → sm_meeting_attendee（参会人员）→ sm_meeting_info（会议）`。
   科室即大屏按科室展示指标、晨会按科室汇报的聚合维度。表内暂无 meeting_id 字段，如需精确到某次会议可补列（对应 sm_meeting_info.id）。
 
 **审批（杨子亨）**

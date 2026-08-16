@@ -84,7 +84,7 @@ cd frontend-shell/backend
 
 - 统一响应：`{ success, code, msg, data }`，`Result.ok(data)` / `Result.fail(code, msg)`
 - 数据库：`smart_meeting`，utf8mb4，表前缀 `sm_`/`bi_`/`data_`
-- 共享表（改结构需协调）：`sm_gm_members`、`sm_meeting_info`、`meeting_attendee`、`meeting_agenda`、`sm_org`
+- 共享表（改结构需协调）：`sm_gm_members`、`sm_meeting_info`、`sm_meeting_attendee`、`meeting_agenda`、`sm_org`
 - smart-approval-manage 用 Spring Data JPA，其余四个用 MyBatis-Plus 3.5.x
 
 ## 开发流程

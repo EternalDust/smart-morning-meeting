@@ -62,7 +62,7 @@ CREATE TABLE sm_gm_members (
 );
 
 -- 7. 参会人员表
-CREATE TABLE meeting_attendee (
+CREATE TABLE sm_meeting_attendee (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     meeting_id BIGINT NOT NULL,
     user_id VARCHAR(50) NOT NULL,
@@ -81,7 +81,7 @@ INSERT INTO sm_gm_members (user_id, name, role, dept) VALUES
 ('1010','郑雅文',2,'内科'),('1011','黄志远',2,'麻醉科'),('1012','马晓燕',2,'护理部'),
 ('2001','杨辉',1,'管理层'),('2002','夏善柱',1,'管理层'),('2003','刘勇国',1,'管理层');
 
-INSERT INTO meeting_attendee (meeting_id, user_id, role_type, attend_status) VALUES
+INSERT INTO sm_meeting_attendee (meeting_id, user_id, role_type, attend_status) VALUES
 (1,'1001',2,0),(1,'1002',2,0),(1,'1003',2,0),(1,'1004',2,0),(1,'1005',2,0),
 (1,'1006',2,0),(1,'1007',2,0),(1,'1008',2,0),(1,'1009',2,0),(1,'1010',2,0),
 (1,'1011',2,0),(1,'1012',2,0),(1,'2001',1,0),(1,'2002',1,0),(1,'2003',1,0);
