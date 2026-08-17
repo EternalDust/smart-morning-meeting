@@ -16,7 +16,12 @@
           <el-tag :type="getStatusType(problem.status)">{{ getStatusName(problem.status) }}</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="负责人">{{ assigneeName || '未分派' }}</el-descriptions-item>
-        <el-descriptions-item label="截止时间">{{ formatTime(problem.deadline) }}</el-descriptions-item>
+        <el-descriptions-item label="截止时间">
+          {{ formatTime(problem.deadline) }}
+          <el-tag v-if="problem.deadline" :type="getDeadlineStatus(problem.deadline).type" size="small" style="margin-left:8px">
+            {{ getDeadlineStatus(problem.deadline).text }}
+          </el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ problem.createTime }}</el-descriptions-item>
       </el-descriptions>
 
@@ -51,8 +56,10 @@
           <el-option label="督办通知书" :value="1" />
           <el-option label="整改通知书" :value="2" />
           <el-option label="闭环报告" :value="3" />
+          <el-option label="催办通知书" :value="4" />
         </el-select>
         <el-button type="primary" :loading="generating" @click="generateDoc">AI生成文书</el-button>
+        <el-button v-if="isAdmin" type="warning" :loading="generating" @click="urgentDoc">一键催办</el-button>
       </div>
 
       <el-table :data="documents" stripe empty-text="暂无文书">
@@ -118,12 +125,20 @@ const docDialogContent = ref('')
 
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
-const getDocTypeName = (type) => ({ 1: '督办通知书', 2: '整改通知书', 3: '闭环报告' }[type] || '未知')
+const getDocTypeName = (type) => ({ 1: '督办通知书', 2: '整改通知书', 3: '闭环报告', 4: '催办通知书' }[type] || '未知')
 const getCheckName = (status) => ({ 0: '待审核', 1: '已通过', 2: '已驳回' }[status] || '未知')
 const getCheckType = (status) => ({ 0: 'warning', 1: 'success', 2: 'danger' }[status] || 'info')
 const formatTime = (time) => {
   if (!time) return '未设置'
   return time.includes('T') ? time.replace('T', ' ').substring(0, 19) : time
+}
+const URGENT_THRESHOLD_HOURS = 24
+const getDeadlineStatus = (time) => {
+  if (!time) return { text: '未设置', type: 'info' }
+  const diff = new Date(time).getTime() - Date.now()
+  if (diff < 0) return { text: '已逾期', type: 'danger' }
+  if (diff <= URGENT_THRESHOLD_HOURS * 3600000) return { text: '临期', type: 'warning' }
+  return { text: '正常', type: 'success' }
 }
 
 const loadDetail = async () => {
@@ -223,6 +238,11 @@ const generateDoc = async () => {
   } finally {
     generating.value = false
   }
+}
+
+const urgentDoc = () => {
+  docType.value = 4
+  generateDoc()
 }
 
 const previewDoc = (row) => {

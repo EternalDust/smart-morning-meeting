@@ -80,6 +80,10 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
                 docTypeName = "闭环报告";
                 requirements = "包含文书标题、问题标题、整改情况概述、结案意见、审核部门与结案日期。";
                 break;
+            case 4:
+                docTypeName = "催办通知书";
+                requirements = "包含文书标题、主送对象（责任科室/责任人）、原督办事项与截止时间、当前逾期/临期情况说明、催办要求、再次明确的办理期限、落款单位与日期占位。";
+                break;
             default:
                 throw new IllegalArgumentException("不支持的文书类型");
         }
@@ -160,6 +164,25 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
                                 "结案意见：经复查，问题已整改到位，同意结案。\n\n" +
                                 "审核部门：质量管理办公室",
                         problem.getTitle(),
+                        now
+                );
+                break;
+            case 4:
+                docTitle = "【催办通知书】";
+                docContent = String.format(
+                        "催办事项：%s\n\n" +
+                                "问题描述：%s\n\n" +
+                                "风险等级：%s\n\n" +
+                                "原定截止时间：%s\n\n" +
+                                "催办要求：请相关责任人加快整改进度，于收到本通知后3个工作日内反馈最新进展，并确保按期闭环。\n\n" +
+                                "生成时间：%s\n" +
+                                "督办部门：质量管理办公室",
+                        problem.getTitle(),
+                        problem.getContent() != null ? problem.getContent() : "无",
+                        getRiskLevelDesc(problem.getRiskLevel()),
+                        problem.getDeadline() != null
+                                ? problem.getDeadline().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                                : "未设置",
                         now
                 );
                 break;

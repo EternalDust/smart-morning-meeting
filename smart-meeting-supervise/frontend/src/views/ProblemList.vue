@@ -20,6 +20,15 @@
             <el-tag :type="getStatusType(row.status)">{{ getStatusName(row.status) }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="截止时间" width="220">
+          <template #default="{row}">
+            <template v-if="row.deadline">
+              {{ formatTime(row.deadline) }}
+              <el-tag :type="getDeadlineStatus(row.deadline).type" size="small" style="margin-left:6px">{{ getDeadlineStatus(row.deadline).text }}</el-tag>
+            </template>
+            <span v-else>未设置</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
       </el-table>
     </el-card>
@@ -68,6 +77,15 @@ const newProblem = ref({ title: '', content: '', deadline: null })
 
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
+const formatTime = (time) => (time ? (time.includes('T') ? time.replace('T', ' ').substring(0, 19) : time) : '')
+const URGENT_THRESHOLD_HOURS = 24
+const getDeadlineStatus = (time) => {
+  if (!time) return { text: '未设置', type: 'info' }
+  const diff = new Date(time).getTime() - Date.now()
+  if (diff < 0) return { text: '已逾期', type: 'danger' }
+  if (diff <= URGENT_THRESHOLD_HOURS * 3600000) return { text: '临期', type: 'warning' }
+  return { text: '正常', type: 'success' }
+}
 
 const loadProblems = async () => {
   const res = await request.get('/supervise/problem/list?page=1&size=100')
