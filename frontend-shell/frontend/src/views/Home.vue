@@ -24,7 +24,7 @@
             <el-icon><ChatDotRound /></el-icon>
             <span>签到汇报与互动</span>
           </el-menu-item>
-          <el-sub-menu v-if="isAdmin" index="supervise">
+          <el-sub-menu index="supervise">
             <template #title>
               <el-icon><Warning /></el-icon>
               <span>问题督办与闭环</span>
@@ -100,8 +100,7 @@ const MENU = {
     pages: [
       { title: '首页', route: '/dashboard' },
       { title: '问题列表', route: '/problems' },
-      { title: '进度跟踪', route: '/progress' },
-      { title: '数据统计', route: '/statistics' }
+      { title: '进度跟踪', route: '/progress' }
     ]
   },
   collection: {
