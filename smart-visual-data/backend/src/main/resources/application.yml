@@ -32,14 +32,15 @@ mybatis-plus:
     db-config:
       id-type: auto
 
-# 大模型复盘报告配置 (DeepSeek 等 OpenAI 兼容接口)
+# 大模型复盘报告配置 (智谱 GLM 等 OpenAI 兼容接口)
+# GLM-4.7-Flash 为推理模型，reasoning_content 会占用 max-tokens，故给足预算
 ai:
   llm:
-    base-url: ${AI_LLM_BASE_URL:https://api.deepseek.com}
-    model: ${AI_LLM_MODEL:deepseek-v4-flash}
-    api-key: ${AI_LLM_API_KEY:sk-2b28173e62994a95acf0000de7025620}
+    base-url: ${AI_LLM_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
+    model: ${AI_LLM_MODEL:GLM-4.7-Flash}
+    api-key: ${AI_LLM_API_KEY:3c75c432311e441f8dd1e4033689b67b.YNUUZLNOk6MclCVY}
     connect-timeout-seconds: 10
     read-timeout-seconds: 60
     temperature: 0.7
-    max-tokens: 1500
+    max-tokens: 3000
     max-retry: 3
