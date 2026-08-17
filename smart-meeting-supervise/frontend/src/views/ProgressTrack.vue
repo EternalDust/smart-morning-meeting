@@ -6,7 +6,9 @@
         <el-input v-model="myAccount" placeholder="工号，如 1001" style="width:200px" />
         <el-button type="primary" :loading="loadingMine" @click="loadMyTasks">加载我的任务</el-button>
       </div>
-      <el-table :data="myProblems" stripe empty-text="暂无待办任务（可点右上角手动输入问题ID查询）" max-height="260">
+      <el-alert type="info" :closable="false" style="margin-bottom:10px"
+        title="工号自动取当前演示身份，可在右上角切换督办专员/执行责任人后自动刷新" />
+      <el-table :data="myProblems" stripe empty-text="当前身份暂无待办任务" max-height="260">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="title" label="标题" />
         <el-table-column label="状态" width="100">
@@ -66,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '../api/request'
 
@@ -119,6 +121,12 @@ const selectMyProblem = (row) => {
   problemId.value = String(row.id)
   loadProgress()
 }
+
+onMounted(() => {
+  if (myAccount.value) {
+    loadMyTasks()
+  }
+})
 
 const loadProgress = async () => {
   if (!problemId.value) return

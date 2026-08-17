@@ -24,7 +24,10 @@
 <script setup>
 import { ref } from 'vue'
 
-const demoAccount = ref(localStorage.getItem('account') || '2001')
+if (!localStorage.getItem('account')) {
+  localStorage.setItem('account', '2001')
+}
+const demoAccount = ref(localStorage.getItem('account'))
 
 const switchIdentity = (account) => {
   localStorage.setItem('account', account)
