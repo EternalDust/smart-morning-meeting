@@ -51,15 +51,9 @@
 
     <el-card style="margin-top:16px">
       <template #header><span>督办文书（AI生成）</span></template>
-      <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center">
-        <el-select v-model="docType" style="width:180px">
-          <el-option label="督办通知书" :value="1" />
-          <el-option label="整改通知书" :value="2" />
-          <el-option label="闭环报告" :value="3" />
-          <el-option label="催办通知书" :value="4" />
-        </el-select>
-        <el-button type="primary" :loading="generating" @click="generateDoc">AI生成文书</el-button>
-        <el-button v-if="isAdmin" type="warning" :loading="generating" @click="urgentDoc">一键催办</el-button>
+      <div style="margin-bottom:12px">
+        <el-button v-if="isAdmin" type="warning" :loading="generating" @click="generateDoc">一键催办（AI生成催办通知书）</el-button>
+        <span v-else style="color:#999; font-size:13px">仅督办专员可发起催办</span>
       </div>
 
       <el-table :data="documents" stripe empty-text="暂无文书">
@@ -116,7 +110,7 @@ const assigning = ref(false)
 const newDeadline = ref(null)
 const savingDeadline = ref(false)
 
-const docType = ref(1)
+const docType = ref(4)
 const documents = ref([])
 const generating = ref(false)
 const docDialogVisible = ref(false)
@@ -238,11 +232,6 @@ const generateDoc = async () => {
   } finally {
     generating.value = false
   }
-}
-
-const urgentDoc = () => {
-  docType.value = 4
-  generateDoc()
 }
 
 const previewDoc = (row) => {
