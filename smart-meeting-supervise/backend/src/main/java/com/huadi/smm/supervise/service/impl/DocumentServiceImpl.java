@@ -82,7 +82,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
                 break;
             case 4:
                 docTypeName = "催办通知书";
-                requirements = "包含文书标题、主送对象（责任科室/责任人）、原督办事项与截止时间、当前逾期/临期情况说明、催办要求、再次明确的办理期限、落款单位与日期占位。";
+                requirements = "包含文书标题、主送对象（责任科室/责任人）、原督办事项与截止时间、当前逾期/临期情况说明、催办要求、再次明确的办理期限、落款单位与落款日期。";
                 break;
             default:
                 throw new IllegalArgumentException("不支持的文书类型");
@@ -106,7 +106,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
             }
         }
         sb.append("\n要求：").append(requirements);
-        sb.append(" 标题居中，正文分条列出，落款处写“质量管理办公室”和日期占位。");
+        String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年M月d日"));
+        sb.append(" 标题居中，正文分条列出，落款单位写“质量管理办公室”，落款日期写今天日期（今天：")
+                .append(today).append("）。");
         return sb.toString();
     }
 
