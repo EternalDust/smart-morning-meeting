@@ -30,6 +30,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
+        <el-table-column v-if="isAdmin" label="操作" width="100">
+          <template #default="{row}">
+            <el-button size="small" type="danger" :loading="deletingId === row.id" @click="deleteProblem(row)">删除</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
@@ -65,8 +70,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../api/request'
+import { getAccount } from '../utils/auth'
 
 const problems = ref([])
 const showAdd = ref(false)
@@ -74,6 +80,8 @@ const showImport = ref(false)
 const importMeetingId = ref('')
 const importing = ref(false)
 const newProblem = ref({ title: '', content: '', deadline: null })
+const isAdmin = getAccount().startsWith('2')
+const deletingId = ref(null)
 
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
@@ -122,6 +130,28 @@ const importMeeting = async () => {
     }
   } finally {
     importing.value = false
+  }
+}
+
+const deleteProblem = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确认删除问题「${row.title}」？关联的分派、进度、文书记录会一并删除。`, '删除问题', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+  } catch (e) {
+    return
+  }
+  deletingId.value = row.id
+  try {
+    const res = await request.delete(`/supervise/problem/${row.id}`)
+    if (res.success) {
+      ElMessage.success('删除成功')
+      loadProblems()
+    }
+  } finally {
+    deletingId.value = null
   }
 }
 

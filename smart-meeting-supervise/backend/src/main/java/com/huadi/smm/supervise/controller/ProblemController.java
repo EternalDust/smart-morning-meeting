@@ -142,4 +142,17 @@ public class ProblemController {
         problemService.closeProblem(id);
         return Result.ok("复查通过，问题已闭环", null);
     }
+
+    /**
+     * 删除问题（仅管理员，级联删除分派/进度/文书）
+     * DELETE /api/supervise/problem/{id}
+     */
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteProblem(@PathVariable Long id, HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可删除问题");
+        }
+        problemService.deleteProblem(id);
+        return Result.ok("删除成功", null);
+    }
 }

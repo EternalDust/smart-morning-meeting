@@ -23,4 +23,9 @@ public interface ProblemService extends IService<Problem> {
      * 复查通过，闭环问题（仅待复查且进度100%的问题可闭环）
      */
     void closeProblem(Long id);
+
+    /**
+     * 删除问题（级联删除分派/进度/文书记录）
+     */
+    void deleteProblem(Long id);
 }

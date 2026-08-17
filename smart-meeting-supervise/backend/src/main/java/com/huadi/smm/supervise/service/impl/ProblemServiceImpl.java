@@ -75,4 +75,13 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem>
         update.setStatus(3);
         this.updateById(update);
     }
+
+    @Override
+    public void deleteProblem(Long id) {
+        Problem problem = this.getById(id);
+        if (problem == null) {
+            throw new IllegalArgumentException("问题不存在");
+        }
+        this.removeById(id);
+    }
 }
