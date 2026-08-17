@@ -6,7 +6,6 @@
         <el-menu-item index="/dashboard">首页</el-menu-item>
         <el-menu-item index="/problems">问题列表</el-menu-item>
         <el-menu-item index="/progress">进度跟踪</el-menu-item>
-        <el-menu-item index="/statistics">数据统计</el-menu-item>
       </el-menu>
     </el-aside>
     <el-main><router-view /></el-main>

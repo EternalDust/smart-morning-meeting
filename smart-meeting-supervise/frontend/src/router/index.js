@@ -4,7 +4,6 @@ import Dashboard from '../views/Dashboard.vue'
 import ProblemList from '../views/ProblemList.vue'
 import ProblemDetail from '../views/ProblemDetail.vue'
 import ProgressTrack from '../views/ProgressTrack.vue'
-import Statistics from '../views/Statistics.vue'
 
 // 统一门户登录：从 URL 上取 token 存入本地
 const urlToken = new URLSearchParams(window.location.search).get('token')
@@ -21,8 +20,7 @@ const routes = [
             { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
             { path: '/problems', name: 'ProblemList', component: ProblemList, meta: { requiresAuth: true } },
             { path: '/problems/:id', name: 'ProblemDetail', component: ProblemDetail, meta: { requiresAuth: true } },
-            { path: '/progress', name: 'ProgressTrack', component: ProgressTrack, meta: { requiresAuth: true } },
-            { path: '/statistics', name: 'Statistics', component: Statistics, meta: { requiresAuth: true } }
+            { path: '/progress', name: 'ProgressTrack', component: ProgressTrack, meta: { requiresAuth: true } }
         ]
     }
 ]
