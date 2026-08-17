@@ -32,6 +32,11 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
         if (record.getProgress() == null || record.getProgress() < 0 || record.getProgress() > 100) {
             throw new IllegalArgumentException("进度值必须在0-100之间");
         }
+        // 进度只能递增：新上报值不能低于当前进度
+        Integer current = getCurrentProgress(record.getProblemId());
+        if (current != null && record.getProgress() < current) {
+            throw new IllegalArgumentException("进度不能低于当前进度 " + current + "%");
+        }
         // 权限校验：上报人必须是当前执行责任人（或管理员），未登录/演示场景（reporterId 为空）放行
         if (record.getReporterId() != null) {
             Problem problem = problemMapper.selectById(record.getProblemId());

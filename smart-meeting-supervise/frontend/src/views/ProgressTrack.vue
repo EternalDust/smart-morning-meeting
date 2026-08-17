@@ -141,6 +141,10 @@ const submitProgress = async () => {
       ElMessage.warning('进度必须在0-100之间')
       return
     }
+    if (progress < currentProgress.value) {
+      ElMessage.warning(`进度不能低于当前进度 ${currentProgress.value}%`)
+      return
+    }
     const payload = {
       problemId: Number(problemId.value),
       progress,
