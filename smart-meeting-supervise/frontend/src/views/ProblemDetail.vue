@@ -12,12 +12,6 @@
         <el-descriptions-item label="问题ID">{{ problem.id }}</el-descriptions-item>
         <el-descriptions-item label="问题标题">{{ problem.title }}</el-descriptions-item>
         <el-descriptions-item label="问题描述" :span="2">{{ problem.content || '无' }}</el-descriptions-item>
-        <el-descriptions-item label="分类">
-          <el-tag :type="getCategoryType(problem.category)">{{ getCategoryName(problem.category) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="风险等级">
-          <el-tag :type="getRiskType(problem.riskLevel)">{{ getRiskName(problem.riskLevel) }}</el-tag>
-        </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(problem.status)">{{ getStatusName(problem.status) }}</el-tag>
         </el-descriptions-item>
@@ -27,19 +21,25 @@
       </el-descriptions>
 
       <div class="actions">
-        <div class="deadline-row">
-          <el-date-picker v-model="newDeadline" type="datetime" placeholder="设置截止时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:220px; margin-right:10px" />
-          <el-button type="primary" plain :loading="savingDeadline" @click="saveDeadline">保存截止时间</el-button>
-        </div>
-        <template v-if="problem.status === 0">
-          <el-button type="primary" :loading="assigning" @click="autoAssign">AI自动分派</el-button>
+        <template v-if="isAdmin">
+          <div class="deadline-row">
+            <el-date-picker v-model="newDeadline" type="datetime" placeholder="设置截止时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:220px; margin-right:10px" />
+            <el-button type="primary" plain :loading="savingDeadline" @click="saveDeadline">保存截止时间</el-button>
+          </div>
+          <template v-if="problem.status === 0">
+            <el-button type="primary" :loading="assigning" @click="autoAssign">AI自动分派</el-button>
+          </template>
+          <template v-else>
+            <el-select v-model="manualUserId" placeholder="选择负责人" style="width:200px; margin-right:10px">
+              <el-option v-for="u in assignableUsers" :key="u.id" :label="`${u.name}（${u.dept || '未分科室'}）`" :value="u.id" />
+            </el-select>
+            <el-input v-model="manualReason" placeholder="改派原因（可选）" style="width:220px; margin-right:10px" />
+            <el-button type="warning" :loading="assigning" @click="manualAssign">人工改派</el-button>
+          </template>
         </template>
         <template v-else>
-          <el-select v-model="manualUserId" placeholder="选择负责人" style="width:200px; margin-right:10px">
-            <el-option v-for="u in assignableUsers" :key="u.id" :label="`${u.name}（${u.dept || '未分科室'}）`" :value="u.id" />
-          </el-select>
-          <el-input v-model="manualReason" placeholder="改派原因（可选）" style="width:220px; margin-right:10px" />
-          <el-button type="warning" :loading="assigning" @click="manualAssign">人工改派</el-button>
+          <el-alert type="info" :closable="false" show-icon
+            title="当前为执行责任人身份，分派、改派、审核等督办操作仅督办专员（管理员）可用" />
         </template>
       </div>
     </el-card>
@@ -71,7 +71,7 @@
         <el-table-column label="操作" width="210">
           <template #default="{row}">
             <el-button size="small" @click="previewDoc(row)">查看</el-button>
-            <template v-if="row.checkStatus === 0">
+            <template v-if="isAdmin && row.checkStatus === 0">
               <el-button size="small" type="success" @click="auditDoc(row, 1)">通过</el-button>
               <el-button size="small" type="danger" @click="auditDoc(row, 2)">驳回</el-button>
             </template>
@@ -98,6 +98,7 @@ import request from '../api/request'
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id
+const isAdmin = (localStorage.getItem('account') || '').startsWith('2')
 
 const problem = ref({})
 const assigneeName = ref('')
@@ -115,10 +116,6 @@ const docDialogVisible = ref(false)
 const docDialogTitle = ref('')
 const docDialogContent = ref('')
 
-const getCategoryName = (type) => ({ 1: '医疗类', 2: '运维类', 3: '管理类' }[type] || '未分类')
-const getCategoryType = (type) => ({ 1: 'danger', 2: 'warning', 3: 'info' }[type] || 'info')
-const getRiskName = (level) => ({ 1: '一般', 2: '重要', 3: '紧急' }[level] || '未定')
-const getRiskType = (level) => ({ 1: 'info', 2: 'warning', 3: 'danger' }[level] || 'info')
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
 const getDocTypeName = (type) => ({ 1: '督办通知书', 2: '整改通知书', 3: '闭环报告' }[type] || '未知')

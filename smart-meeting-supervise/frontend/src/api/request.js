@@ -12,6 +12,10 @@ request.interceptors.request.use(config => {
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`
     }
+    const account = localStorage.getItem('account')
+    if (account) {
+        config.headers['X-Account'] = account
+    }
     return config
 }, error => {
     return Promise.reject(error)

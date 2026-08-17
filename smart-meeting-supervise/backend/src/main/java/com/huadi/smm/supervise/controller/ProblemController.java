@@ -6,6 +6,7 @@ import com.huadi.smm.supervise.entity.User;
 import com.huadi.smm.supervise.mapper.UserMapper;
 import com.huadi.smm.supervise.service.MeetingImportService;
 import com.huadi.smm.supervise.service.ProblemService;
+import com.huadi.smm.supervise.utils.CurrentUser;
 import com.huadi.smm.supervise.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/supervise/problem")
@@ -30,6 +32,9 @@ public class ProblemController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private CurrentUser currentUser;
 
     public ProblemController(ProblemService problemService) {
         this.problemService = problemService;
@@ -57,7 +62,11 @@ public class ProblemController {
     }
 
     @PutMapping("/status/{id}")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status,
+                                     HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可变更问题状态");
+        }
         problemService.updateStatus(id, status);
         return Result.ok(null);
     }
@@ -83,24 +92,9 @@ public class ProblemController {
      * POST /api/supervise/problem/import-meeting?meetingId=1
      */
     @PostMapping("/import-meeting")
-    public Result<Map<String, Object>> importFromMeeting(
-            @RequestParam Long meetingId,
-            @RequestHeader(value = "Authorization", required = false) String authorization) {
-        Long creatorId = resolveCreatorId(authorization);
-        return Result.ok(meetingImportService.importFromMeeting(meetingId, creatorId));
-    }
-
-    private Long resolveCreatorId(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
-            return null;
-        }
-        try {
-            String account = jwtUtils.getClaimsFromToken(authorization.substring(7)).getSubject();
-            User user = userMapper.findByUserId(account);
-            return user == null ? null : user.getId();
-        } catch (Exception e) {
-            return null;
-        }
+    public Result<Map<String, Object>> importFromMeeting(@RequestParam Long meetingId, HttpServletRequest request) {
+        User user = currentUser.resolve(request, null);
+        return Result.ok(meetingImportService.importFromMeeting(meetingId, user != null ? user.getId() : null));
     }
 
     /**

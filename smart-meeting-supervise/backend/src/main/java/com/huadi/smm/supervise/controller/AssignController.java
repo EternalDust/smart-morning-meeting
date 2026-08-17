@@ -5,6 +5,7 @@ import com.huadi.smm.supervise.entity.AssignRecord;
 import com.huadi.smm.supervise.entity.User;
 import com.huadi.smm.supervise.mapper.UserMapper;
 import com.huadi.smm.supervise.service.AssignService;
+import com.huadi.smm.supervise.utils.CurrentUser;
 import com.huadi.smm.supervise.vo.UserVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/supervise/assign")
@@ -22,6 +24,9 @@ public class AssignController {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private CurrentUser currentUser;
+
     public AssignController(AssignService assignService) {
         this.assignService = assignService;
     }
@@ -31,7 +36,10 @@ public class AssignController {
      * POST /api/supervise/assign/auto/{problemId}
      */
     @PostMapping("/auto/{problemId}")
-    public Result<AssignRecord> autoAssign(@PathVariable Long problemId) {
+    public Result<AssignRecord> autoAssign(@PathVariable Long problemId, HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可进行自动分派");
+        }
         AssignRecord record = assignService.autoAssign(problemId);
         return Result.ok("自动分派成功", record);
     }
@@ -42,7 +50,10 @@ public class AssignController {
      * 请求体: {"problemId": 1, "userId": 2, "operatorId": 1, "reason": "任务重新分配"}
      */
     @PostMapping("/manual")
-    public Result<Void> manualAssign(@RequestBody Map<String, Object> params) {
+    public Result<Void> manualAssign(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可进行人工改派");
+        }
         Long problemId = params.get("problemId") != null ? Long.valueOf(params.get("problemId").toString()) : null;
         Long userId = params.get("userId") != null ? Long.valueOf(params.get("userId").toString()) : null;
         Long operatorId = params.get("operatorId") != null ? Long.valueOf(params.get("operatorId").toString()) : null;

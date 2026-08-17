@@ -2,18 +2,24 @@ package com.huadi.smm.supervise.controller;
 
 import com.huadi.smm.supervise.dto.Result;
 import com.huadi.smm.supervise.entity.Document;
+import com.huadi.smm.supervise.utils.CurrentUser;
 import com.huadi.smm.supervise.service.DocumentService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/supervise/document")
 public class DocumentController {
 
     private final DocumentService documentService;
+
+    @Autowired
+    private CurrentUser currentUser;
 
     public DocumentController(DocumentService documentService) {
         this.documentService = documentService;
@@ -45,7 +51,11 @@ public class DocumentController {
      * status: 1通过 2驳回
      */
     @PostMapping("/audit/{id}")
-    public Result<Void> auditDocument(@PathVariable Long id, @RequestBody Map<String, Object> params) {
+    public Result<Void> auditDocument(@PathVariable Long id, @RequestBody Map<String, Object> params,
+                                      HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可审核文书");
+        }
         Integer status = Integer.valueOf(params.get("status").toString());
         documentService.auditDocument(id, status);
         String msg = status == 1 ? "审核通过" : "审核驳回";

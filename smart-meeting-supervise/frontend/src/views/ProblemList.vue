@@ -15,12 +15,6 @@
             <router-link :to="`/problems/${row.id}`" style="color:#409EFF">{{ row.title }}</router-link>
           </template>
         </el-table-column>
-        <el-table-column label="分类" width="110">
-          <template #default="{row}">{{ getCategoryName(row.category) }}</template>
-        </el-table-column>
-        <el-table-column label="风险等级" width="110">
-          <template #default="{row}">{{ getRiskName(row.riskLevel) }}</template>
-        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{row}">
             <el-tag :type="getStatusType(row.status)">{{ getStatusName(row.status) }}</el-tag>
@@ -72,8 +66,6 @@ const importMeetingId = ref('')
 const importing = ref(false)
 const newProblem = ref({ title: '', content: '', deadline: null })
 
-const getCategoryName = (type) => ({ 1: '医疗类', 2: '运维类', 3: '管理类' }[type] || '未分类')
-const getRiskName = (level) => ({ 1: '一般', 2: '重要', 3: '紧急' }[level] || '未定')
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
 
