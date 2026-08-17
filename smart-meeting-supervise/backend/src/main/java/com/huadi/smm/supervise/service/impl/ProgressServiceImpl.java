@@ -54,14 +54,20 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
             }
         }
         boolean saved = this.save(record);
-        // 闭环：进度达到100%时，处理中的问题自动进入“待复查”
-        if (saved && record.getProgress() != null && record.getProgress() == 100) {
+        // 状态与最新进度保持一致：
+        // 进度达到100% → 待复查；已待复查但最新进度不足100% → 退回处理中
+        if (saved && record.getProgress() != null) {
             Problem problem = problemMapper.selectById(record.getProblemId());
-            if (problem != null && problem.getStatus() != null && problem.getStatus() == 1) {
+            if (problem != null && problem.getStatus() != null) {
                 Problem update = new Problem();
                 update.setId(problem.getId());
-                update.setStatus(2);
-                problemMapper.updateById(update);
+                if (record.getProgress() == 100 && problem.getStatus() == 1) {
+                    update.setStatus(2);
+                    problemMapper.updateById(update);
+                } else if (record.getProgress() < 100 && problem.getStatus() == 2) {
+                    update.setStatus(1);
+                    problemMapper.updateById(update);
+                }
             }
         }
         return saved;
@@ -80,6 +86,7 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
         LambdaQueryWrapper<ProgressRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProgressRecord::getProblemId, problemId)
                 .orderByDesc(ProgressRecord::getCreateTime)
+                .orderByDesc(ProgressRecord::getId)
                 .last("LIMIT 1");
         ProgressRecord record = this.getOne(wrapper);
         return record != null ? record.getProgress() : 0;
