@@ -71,6 +71,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '../api/request'
+import { getAccount } from '../utils/auth'
 
 const problemId = ref('')
 const currentProgress = ref(0)
@@ -83,20 +84,7 @@ const myAccount = ref('')
 const myProblems = ref([])
 const loadingMine = ref(false)
 
-const parseJwtAccount = () => {
-  const token = localStorage.getItem('token')
-  if (!token) return null
-  const parts = token.split('.')
-  if (parts.length !== 3) return null
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return payload.sub || null
-  } catch (e) {
-    return null
-  }
-}
-
-myAccount.value = parseJwtAccount() || localStorage.getItem('account') || ''
+myAccount.value = getAccount()
 
 const loadMyTasks = async () => {
   if (!myAccount.value) {
@@ -157,7 +145,7 @@ const submitProgress = async () => {
       problemId: Number(problemId.value),
       progress,
       remark: newRemark.value || null,
-      reporterId: localStorage.getItem('userId') ? Number(localStorage.getItem('userId')) : null
+      account: getAccount() || null
     }
     const res = await request.post('/supervise/progress/submit', payload)
     if (res.success) {

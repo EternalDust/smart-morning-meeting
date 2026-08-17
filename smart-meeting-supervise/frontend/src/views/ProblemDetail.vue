@@ -95,11 +95,12 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../api/request'
+import { isAdmin as checkAdmin } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id
-const isAdmin = (localStorage.getItem('account') || '').startsWith('2')
+const isAdmin = checkAdmin()
 
 const problem = ref({})
 const assigneeName = ref('')

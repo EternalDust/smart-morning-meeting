@@ -8,29 +8,6 @@
         <el-menu-item index="/progress">进度跟踪</el-menu-item>
       </el-menu>
     </el-aside>
-    <el-container>
-      <el-header style="background:#fff; border-bottom:1px solid #eee; display:flex; justify-content:flex-end; align-items:center">
-        <span style="color:#666; margin-right:8px">演示身份</span>
-        <el-select v-model="demoAccount" size="small" style="width:170px" @change="switchIdentity">
-          <el-option label="督办专员（2001 杨辉）" value="2001" />
-          <el-option label="执行责任人（1003 王芳）" value="1003" />
-        </el-select>
-      </el-header>
-      <el-main><router-view /></el-main>
-    </el-container>
+    <el-main><router-view /></el-main>
   </el-container>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-
-if (!localStorage.getItem('account')) {
-  localStorage.setItem('account', '2001')
-}
-const demoAccount = ref(localStorage.getItem('account'))
-
-const switchIdentity = (account) => {
-  localStorage.setItem('account', account)
-  location.reload()
-}
-</script>
