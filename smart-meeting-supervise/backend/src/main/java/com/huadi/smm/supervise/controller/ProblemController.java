@@ -129,4 +129,17 @@ public class ProblemController {
         result.put("problems", problems);
         return Result.ok(result);
     }
+
+    /**
+     * 复查通过，闭环问题（仅管理员）
+     * POST /api/supervise/problem/close/{id}
+     */
+    @PostMapping("/close/{id}")
+    public Result<Void> closeProblem(@PathVariable Long id, HttpServletRequest request) {
+        if (!currentUser.isAdmin(request, null)) {
+            throw new IllegalArgumentException("仅督办专员（管理员）可执行闭环审核");
+        }
+        problemService.closeProblem(id);
+        return Result.ok("复查通过，问题已闭环", null);
+    }
 }

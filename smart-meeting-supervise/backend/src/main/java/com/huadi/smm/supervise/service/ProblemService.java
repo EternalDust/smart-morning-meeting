@@ -18,4 +18,9 @@ public interface ProblemService extends IService<Problem> {
      * 查询某个成员当前负责的处理中/待复查问题
      */
     List<Problem> listMyProblems(Long memberId);
+
+    /**
+     * 复查通过，闭环问题（仅待复查且进度100%的问题可闭环）
+     */
+    void closeProblem(Long id);
 }

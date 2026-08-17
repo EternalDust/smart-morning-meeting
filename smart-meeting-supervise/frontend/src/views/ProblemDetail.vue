@@ -41,6 +41,10 @@
             <el-input v-model="manualReason" placeholder="改派原因（可选）" style="width:220px; margin-right:10px" />
             <el-button type="warning" :loading="assigning" @click="manualAssign">人工改派</el-button>
           </template>
+          <template v-if="problem.status === 2">
+            <el-divider style="margin:8px 0" />
+            <el-button type="success" :loading="closing" @click="closeProblem">复查通过（闭环）</el-button>
+          </template>
         </template>
         <template v-else>
           <el-alert type="info" :closable="false" show-icon
@@ -93,7 +97,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../api/request'
 import { isAdmin as checkAdmin } from '../utils/auth'
 
@@ -117,6 +121,7 @@ const generating = ref(false)
 const docDialogVisible = ref(false)
 const docDialogTitle = ref('')
 const docDialogContent = ref('')
+const closing = ref(false)
 
 const getStatusName = (status) => ({ 0: '待分派', 1: '处理中', 2: '待复查', 3: '已闭环' }[status] || '未知')
 const getStatusType = (status) => ({ 0: 'info', 1: 'warning', 2: 'danger', 3: 'success' }[status] || 'info')
@@ -246,6 +251,28 @@ const auditDoc = async (row, status) => {
   if (res.success) {
     ElMessage.success(status === 1 ? '审核通过' : '已驳回')
     loadDocuments()
+  }
+}
+
+const closeProblem = async () => {
+  try {
+    await ElMessageBox.confirm('确认复查通过并闭环该问题？闭环后不能再上报进度。', '复查审核', {
+      type: 'warning',
+      confirmButtonText: '复查通过',
+      cancelButtonText: '取消'
+    })
+  } catch (e) {
+    return
+  }
+  closing.value = true
+  try {
+    const res = await request.post(`/supervise/problem/close/${id}`)
+    if (res.success) {
+      ElMessage.success('复查通过，问题已闭环')
+      loadDetail()
+    }
+  } finally {
+    closing.value = false
   }
 }
 

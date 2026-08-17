@@ -40,6 +40,9 @@ public class ProgressServiceImpl extends ServiceImpl<ProgressMapper, ProgressRec
         // 权限校验：上报人必须是当前执行责任人（或管理员），未登录/演示场景（reporterId 为空）放行
         if (record.getReporterId() != null) {
             Problem problem = problemMapper.selectById(record.getProblemId());
+            if (problem != null && problem.getStatus() != null && problem.getStatus() == 3) {
+                throw new IllegalArgumentException("问题已闭环，不能再上报进度");
+            }
             if (problem != null && problem.getAssigneeId() != null
                     && !problem.getAssigneeId().equals(record.getReporterId())) {
                 User reporter = userMapper.selectById(record.getReporterId());
